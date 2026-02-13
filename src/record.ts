@@ -9,7 +9,7 @@
 
 import { spawn } from "child_process";
 import { join } from "path";
-import { mkdirSync } from "fs";
+import { mkdirSync, readdirSync, unlinkSync, statSync } from "fs";
 
 const RECORDINGS_DIR = join(process.cwd(), "recordings");
 
@@ -92,4 +92,33 @@ export function startMicRecording(sessionTimestamp: string): Recording {
  */
 export function startSpeakerRecording(sessionTimestamp: string): Recording {
   return startRecording("speaker", "BlackHole 2ch", sessionTimestamp);
+}
+
+/**
+ * Delete WAV recordings older than maxAgeDays from the recordings directory.
+ */
+export function cleanOldRecordings(maxAgeDays: number): void {
+  const cutoff = Date.now() - maxAgeDays * 24 * 60 * 60 * 1000;
+  let files: string[];
+  try {
+    files = readdirSync(RECORDINGS_DIR);
+  } catch {
+    return; // directory doesn't exist yet
+  }
+
+  for (const file of files) {
+    if (!file.endsWith(".wav")) continue;
+    // Parse timestamp from filename: mic_YYYY-MM-DDTHH-MM-SS.wav or speaker_...
+    const match = file.match(/_(\d{4}-\d{2}-\d{2})T(\d{2})-(\d{2})-(\d{2})\.wav$/);
+    if (!match) continue;
+    const timestamp = new Date(`${match[1]}T${match[2]}:${match[3]}:${match[4]}`).getTime();
+    if (isNaN(timestamp) || timestamp >= cutoff) continue;
+    const fullPath = join(RECORDINGS_DIR, file);
+    try {
+      unlinkSync(fullPath);
+      console.log(`[cleanup] Deleted old recording: ${file}`);
+    } catch (err) {
+      console.error(`[cleanup] Failed to delete ${file}:`, err);
+    }
+  }
 }

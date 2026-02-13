@@ -32,7 +32,7 @@ if (subcommand === "list") {
 }
 
 import { createMicDetector } from "./detect.ts";
-import { startMicRecording, startSpeakerRecording, makeSessionTimestamp, type Recording } from "./record.ts";
+import { startMicRecording, startSpeakerRecording, makeSessionTimestamp, cleanOldRecordings, type Recording } from "./record.ts";
 import { ensureModel, transcribe } from "./transcribe.ts";
 import { mergeTranscripts } from "./merge.ts";
 
@@ -126,6 +126,10 @@ async function stopSession(session: Session): Promise<void> {
     const transcriptPath = await mergeTranscripts(micSegments, speakerSegments, session.sessionTimestamp);
     console.log(`[transcribe] Saved: ${transcriptPath}`);
     notify("Meeting Transcriber", "Transcript ready");
+
+    try { cleanOldRecordings(30); } catch (err) {
+      console.error("[cleanup] Error:", err);
+    }
   } catch (err) {
     console.error("[transcribe] Error:", err);
   }
