@@ -9,6 +9,19 @@
  *   bun run src/index.ts   # Watch mode: detect mic, auto-record
  */
 
+import { realpathSync } from "fs";
+import { dirname, join } from "path";
+import { listTranscripts } from "./list.ts";
+
+// CLI subcommands — run and exit before starting the daemon
+const subcommand = process.argv[2];
+if (subcommand === "list") {
+  const repoDir = dirname(realpathSync(process.execPath));
+  const transcriptsDir = join(repoDir, "transcripts");
+  listTranscripts(transcriptsDir, process.argv.slice(3));
+  process.exit(0);
+}
+
 import { createMicDetector } from "./detect.ts";
 import { startMicRecording, startSpeakerRecording, makeSessionTimestamp, type Recording } from "./record.ts";
 import { ensureModel, transcribe } from "./transcribe.ts";

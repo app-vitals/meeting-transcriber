@@ -15,5 +15,7 @@ launchctl bootout "gui/$(id -u)/com.meeting-transcriber" 2>/dev/null || true
 echo "Removing plist..."
 rm "$PLIST_PATH"
 
+rm -f "$HOME/.local/bin/mt"
+
 echo ""
 echo "meeting-transcriber uninstalled."

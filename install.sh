@@ -71,6 +71,18 @@ echo "Loading LaunchAgent..."
 launchctl bootstrap "$DOMAIN" "$PLIST_PATH"
 
 echo ""
+
+# Symlink binary to ~/.local/bin as 'mt'
+mkdir -p "$HOME/.local/bin"
+ln -sf "$REPO_DIR/meeting-transcriber" "$HOME/.local/bin/mt"
+echo "Symlinked to ~/.local/bin/mt"
+
+if ! echo "$PATH" | tr ':' '\n' | grep -qx "$HOME/.local/bin"; then
+  echo "Note: ~/.local/bin is not in your PATH. Add it with:"
+  echo "  export PATH=\"\$HOME/.local/bin:\$PATH\""
+fi
+
+echo ""
 echo "meeting-transcriber installed and started."
 echo "Logs: $LOG_PATH"
 echo "To uninstall: ./uninstall.sh"
