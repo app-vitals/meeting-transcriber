@@ -50,7 +50,7 @@ Then set up the Multi-Output Device:
 ./install.sh
 ```
 
-This checks prerequisites, compiles Swift helpers and a standalone binary, installs a LaunchAgent, and starts the service. It auto-starts on login.
+This checks prerequisites, compiles Swift helpers and a standalone binary, installs a LaunchAgent (auto-starts on login), and symlinks the binary to `~/.local/bin/mt`.
 
 To update after pulling changes, re-run `./install.sh`.
 
@@ -60,12 +60,26 @@ To uninstall:
 ./uninstall.sh
 ```
 
+## CLI
+
+After install, `mt` is available in your PATH:
+
+```bash
+mt list              # 10 most recent transcripts (default)
+mt list today        # today's transcripts
+mt list week         # last 7 days
+mt list 3            # last 3 days
+mt list 2026-02-13   # single date
+mt list 2026-02-13 2026-02-14  # date range
+mt list all          # everything
+```
+
 ### Manual run
 
 ```bash
 bun install
 bun run build   # compile Swift helpers + standalone binary
-bun run start   # run meeting-transcriber
+bun run start   # run meeting-transcriber watch
 ```
 
 The whisper model (~1.5GB) downloads automatically on first transcription.
