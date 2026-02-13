@@ -18,15 +18,48 @@ function notify(title: string, message: string) {
   Bun.spawn(["terminal-notifier", "-title", title, "-message", message]);
 }
 
-function showRecStatus(): { promise: Promise<void>; kill: () => void } {
+let recStatus: {
+  proc: ReturnType<typeof Bun.spawn>;
+  stdin: Bun.FileSink;
+} | null = null;
+
+function spawnRecStatus(onStop: () => void) {
   const proc = Bun.spawn([import.meta.dir + "/rec-status"], {
+    stdin: "pipe",
     stdout: "pipe",
     stderr: "ignore",
   });
-  return {
-    promise: new Response(proc.stdout).text().then(() => {}),
-    kill: () => proc.kill(),
-  };
+
+  // Listen for "stop" messages from clicks
+  const reader = proc.stdout.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  (async () => {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split("\n");
+      buffer = lines.pop()!;
+      for (const line of lines) {
+        if (line.trim() === "stop") onStop();
+      }
+    }
+  })();
+
+  recStatus = { proc, stdin: proc.stdin };
+}
+
+function sendRecStatus(command: "record" | "idle") {
+  if (!recStatus) return;
+  recStatus.stdin.write(command + "\n");
+  recStatus.stdin.flush();
+}
+
+function killRecStatus() {
+  if (!recStatus) return;
+  recStatus.proc.kill();
+  recStatus = null;
 }
 
 function formatDuration(ms: number): string {
@@ -103,11 +136,12 @@ console.log("BlackHole 2ch detected. Speaker recording enabled.");
 
 await ensureModel();
 
+spawnRecStatus(() => finishRecording());
+
 console.log("Watching for microphone activation...");
 console.log("Press Ctrl+C to exit.\n");
 
 let currentSession: Session | null = null;
-let currentRecStatus: { promise: Promise<void>; kill: () => void } | null = null;
 let shuttingDown = false;
 
 const detector = createMicDetector(2000);
@@ -116,8 +150,7 @@ async function finishRecording() {
   if (!currentSession) return;
   const session = currentSession;
   currentSession = null;
-  currentRecStatus?.kill();
-  currentRecStatus = null;
+  sendRecStatus("idle");
   await stopSession(session);
 }
 
@@ -136,8 +169,7 @@ detector.on("mic-active", async (deviceName: string) => {
   console.log(`[record] Speaker recording: ${speaker.filePath}`);
   notify("Meeting Transcriber", "Recording started (mic + speaker)");
 
-  currentRecStatus = showRecStatus();
-  currentRecStatus.promise.then(() => finishRecording());
+  sendRecStatus("record");
 });
 
 detector.on("error", (err) => {
@@ -150,6 +182,7 @@ async function shutdown() {
   console.log("\nShutting down...");
   detector.stop();
   await finishRecording();
+  killRecStatus();
   process.exit(0);
 }
 
