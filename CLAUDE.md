@@ -4,8 +4,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-- `bun run build` — compile Swift helpers (mic-check, rec-status)
-- `bun run start` — run the meeting transcriber
+- `bun run build` — compile Swift helpers and standalone binary
+- `bun run start` — run the compiled meeting-transcriber binary
+- `./install.sh` — build, install as LaunchAgent (auto-start on login)
+- `./uninstall.sh` — stop and remove LaunchAgent
 - `bun test` — run tests
 
 Use Bun, not Node.js. Use `Bun.file`, `Bun.spawn`, `Bun.write` over Node equivalents.
@@ -27,6 +29,8 @@ macOS-only meeting transcription pipeline: detect mic activation → record dual
 - SoX can't address input-only devices by name on macOS, so mic uses system default input
 - Speaker bleed dedup happens at the text level after transcription, not in audio processing
 - Swift helpers are minimal single-file CLIs compiled with `swiftc`, no Xcode project needed
+- `bun build --compile` produces a standalone `meeting-transcriber` binary — needed so macOS grants mic permissions to it directly
+- All file paths use `process.cwd()` (not `import.meta.dir`) for compatibility with the compiled binary
 
 ## Prerequisites
 

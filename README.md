@@ -44,16 +44,32 @@ Then set up the Multi-Output Device:
 2. Check both your speakers and **BlackHole 2ch**
 3. Set **Multi-Output Device** as system output in System Settings > Sound
 
-## Install and run
+## Install
+
+```bash
+./install.sh
+```
+
+This checks prerequisites, compiles Swift helpers and a standalone binary, installs a LaunchAgent, and starts the service. It auto-starts on login.
+
+To update after pulling changes, re-run `./install.sh`.
+
+To uninstall:
+
+```bash
+./uninstall.sh
+```
+
+### Manual run
 
 ```bash
 bun install
-bun run build   # compile Swift helpers
-bun run start   # watch for mic activation
+bun run build   # compile Swift helpers + standalone binary
+bun run start   # run meeting-transcriber
 ```
 
 The whisper model (~1.5GB) downloads automatically on first transcription.
 
 ## Menu bar
 
-A red **REC** indicator appears in the menu bar during recording. Click it to stop.
+A gray **REC** indicator appears in the menu bar when idle. It turns red during recording. Click it to stop.
