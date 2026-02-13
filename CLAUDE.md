@@ -1,106 +1,33 @@
+# CLAUDE.md
 
-Default to using Bun instead of Node.js.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-- Use `bun <file>` instead of `node <file>` or `ts-node <file>`
-- Use `bun test` instead of `jest` or `vitest`
-- Use `bun build <file.html|file.ts|file.css>` instead of `webpack` or `esbuild`
-- Use `bun install` instead of `npm install` or `yarn install` or `pnpm install`
-- Use `bun run <script>` instead of `npm run <script>` or `yarn run <script>` or `pnpm run <script>`
-- Use `bunx <package> <command>` instead of `npx <package> <command>`
-- Bun automatically loads .env, so don't use dotenv.
+## Commands
 
-## APIs
+- `bun run build` — compile Swift helpers (mic-check, rec-status)
+- `bun run start` — run the meeting transcriber
+- `bun test` — run tests
 
-- `Bun.serve()` supports WebSockets, HTTPS, and routes. Don't use `express`.
-- `bun:sqlite` for SQLite. Don't use `better-sqlite3`.
-- `Bun.redis` for Redis. Don't use `ioredis`.
-- `Bun.sql` for Postgres. Don't use `pg` or `postgres.js`.
-- `WebSocket` is built-in. Don't use `ws`.
-- Prefer `Bun.file` over `node:fs`'s readFile/writeFile
-- Bun.$`ls` instead of execa.
+Use Bun, not Node.js. Use `Bun.file`, `Bun.spawn`, `Bun.write` over Node equivalents.
 
-## Testing
+## Architecture
 
-Use `bun test` to run tests.
+macOS-only meeting transcription pipeline: detect mic activation → record dual audio → transcribe → merge.
 
-```ts#index.test.ts
-import { test, expect } from "bun:test";
+**Flow:**
+1. `index.ts` orchestrates everything. On startup, checks for BlackHole 2ch and downloads the whisper model if needed.
+2. `detect.ts` polls `mic-check` (compiled Swift binary) every 2s via CoreAudio to detect when a meeting app activates a microphone.
+3. On mic activation, `record.ts` starts two SoX `rec` processes — one for the default mic (you), one for BlackHole 2ch (other participants). Both output 16kHz mono 16-bit WAV.
+4. `rec-status.swift` shows a red "REC" menu bar indicator. Clicking it stops recording.
+5. On stop, `transcribe.ts` runs `whisper-cli` (whisper.cpp) on both WAV files in parallel, parsing JSON output into timestamped segments.
+6. `merge.ts` interleaves segments by time, filters speaker bleed from the mic recording using word-overlap similarity, labels as You/Them, writes markdown to `transcripts/`.
 
-test("hello world", () => {
-  expect(1).toBe(1);
-});
-```
+**Key design decisions:**
+- SoX for recording (not ffmpeg) — ffmpeg's avfoundation layer produces clicks/pops with virtual audio devices like BlackHole
+- SoX can't address input-only devices by name on macOS, so mic uses system default input
+- Speaker bleed dedup happens at the text level after transcription, not in audio processing
+- Swift helpers are minimal single-file CLIs compiled with `swiftc`, no Xcode project needed
 
-## Frontend
+## Prerequisites
 
-Use HTML imports with `Bun.serve()`. Don't use `vite`. HTML imports fully support React, CSS, Tailwind.
-
-Server:
-
-```ts#index.ts
-import index from "./index.html"
-
-Bun.serve({
-  routes: {
-    "/": index,
-    "/api/users/:id": {
-      GET: (req) => {
-        return new Response(JSON.stringify({ id: req.params.id }));
-      },
-    },
-  },
-  // optional websocket support
-  websocket: {
-    open: (ws) => {
-      ws.send("Hello, world!");
-    },
-    message: (ws, message) => {
-      ws.send(message);
-    },
-    close: (ws) => {
-      // handle close
-    }
-  },
-  development: {
-    hmr: true,
-    console: true,
-  }
-})
-```
-
-HTML files can import .tsx, .jsx or .js files directly and Bun's bundler will transpile & bundle automatically. `<link>` tags can point to stylesheets and Bun's CSS bundler will bundle.
-
-```html#index.html
-<html>
-  <body>
-    <h1>Hello, world!</h1>
-    <script type="module" src="./frontend.tsx"></script>
-  </body>
-</html>
-```
-
-With the following `frontend.tsx`:
-
-```tsx#frontend.tsx
-import React from "react";
-import { createRoot } from "react-dom/client";
-
-// import .css files directly and it works
-import './index.css';
-
-const root = createRoot(document.body);
-
-export default function Frontend() {
-  return <h1>Hello, world!</h1>;
-}
-
-root.render(<Frontend />);
-```
-
-Then, run index.ts
-
-```sh
-bun --hot ./index.ts
-```
-
-For more information, read the Bun API docs in `node_modules/bun-types/docs/**.mdx`.
+`brew install blackhole-2ch sox whisper-cpp terminal-notifier` plus a Multi-Output Device in Audio MIDI Setup (speakers + BlackHole 2ch).
