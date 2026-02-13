@@ -47,6 +47,7 @@ cat > "$PLIST_PATH" <<EOF
   <key>ProgramArguments</key>
   <array>
     <string>$REPO_DIR/meeting-transcriber</string>
+    <string>watch</string>
   </array>
   <key>EnvironmentVariables</key>
   <dict>

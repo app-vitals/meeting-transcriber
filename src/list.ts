@@ -40,7 +40,24 @@ function startOfDayLocal(date: Date): Date {
   return d;
 }
 
+function printHelp(): void {
+  console.log("Usage: mt list [filter]\n");
+  console.log("Show transcripts, newest first. Default: 10 most recent.\n");
+  console.log("Filters:");
+  console.log("  today              Today's transcripts");
+  console.log("  week               Last 7 days");
+  console.log("  all                All transcripts");
+  console.log("  N                  Last N days (e.g. mt list 3)");
+  console.log("  YYYY-MM-DD         Single date");
+  console.log("  YYYY-MM-DD YYYY-MM-DD  Date range");
+}
+
 export function listTranscripts(transcriptsDir: string, args: string[]): void {
+  if (args[0] === "--help" || args[0] === "-h") {
+    printHelp();
+    return;
+  }
+
   let files: string[];
   try {
     files = readdirSync(transcriptsDir).filter((f) => f.endsWith(".md")).sort();

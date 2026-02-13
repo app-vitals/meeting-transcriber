@@ -1,12 +1,8 @@
 /**
  * Meeting Transcriber - Main entry point
  *
- * Watches for microphone activation, auto-records both mic (user) and
- * speaker (other participants via BlackHole 2ch), and provides
- * a menu bar indicator to stop recording.
- *
- * Usage:
- *   bun run src/index.ts   # Watch mode: detect mic, auto-record
+ * CLI: mt list [filter] | mt watch | mt --help
+ * Daemon (mt watch): detect mic activation → record → transcribe → merge
  */
 
 import { realpathSync } from "fs";
@@ -14,12 +10,25 @@ import { dirname, join } from "path";
 import { listTranscripts } from "./list.ts";
 
 // CLI subcommands — run and exit before starting the daemon
+const repoDir = dirname(realpathSync(process.execPath));
 const subcommand = process.argv[2];
+
 if (subcommand === "list") {
-  const repoDir = dirname(realpathSync(process.execPath));
-  const transcriptsDir = join(repoDir, "transcripts");
-  listTranscripts(transcriptsDir, process.argv.slice(3));
+  listTranscripts(join(repoDir, "transcripts"), process.argv.slice(3));
   process.exit(0);
+} else if (subcommand === "watch" && (process.argv[3] === "--help" || process.argv[3] === "-h")) {
+  console.log("Usage: mt watch\n");
+  console.log("Start the meeting transcriber daemon. Detects mic activation,");
+  console.log("records dual audio (mic + speaker), transcribes, and merges.");
+  console.log("Normally runs automatically via LaunchAgent after install.");
+  process.exit(0);
+} else if (subcommand !== "watch") {
+  console.log("Usage: mt <command>\n");
+  console.log("Commands:");
+  console.log("  list [filter]  List transcripts (default: 10 most recent)");
+  console.log("  watch          Start daemon (detect mic, auto-record)\n");
+  console.log("Run mt <command> --help for details.");
+  process.exit(subcommand === "help" || subcommand === "--help" ? 0 : 1);
 }
 
 import { createMicDetector } from "./detect.ts";
