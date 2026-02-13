@@ -6,9 +6,10 @@ out
 dist
 *.tgz
 
-# compiled native helpers
+# compiled binaries
 src/mic-check
 src/rec-status
+meeting-transcriber
 
 # recordings, transcripts, and models (local data)
 recordings/

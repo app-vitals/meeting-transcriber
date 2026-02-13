@@ -9,7 +9,7 @@ import { join } from "path";
 import { existsSync, mkdirSync, unlinkSync } from "fs";
 import { tmpdir } from "os";
 
-const MODELS_DIR = join(import.meta.dir, "..", "models");
+const MODELS_DIR = join(process.cwd(), "models");
 const MODEL_NAME = "ggml-large-v3-turbo.bin";
 const MODEL_PATH = join(MODELS_DIR, MODEL_NAME);
 const MODEL_URL = `https://huggingface.co/ggerganov/whisper.cpp/resolve/main/${MODEL_NAME}`;
@@ -40,7 +40,8 @@ export async function ensureModel(): Promise<void> {
 
 /** Transcribe a WAV file and return timestamped segments. */
 export async function transcribe(wavPath: string): Promise<Segment[]> {
-  const outputBase = join(tmpdir(), `whisper-${Date.now()}`);
+  const baseName = wavPath.replace(/.*\//, "").replace(/\.wav$/, "");
+  const outputBase = join(tmpdir(), `whisper-${baseName}`);
 
   const proc = Bun.spawn(
     [

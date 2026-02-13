@@ -8,7 +8,7 @@
 
 import { EventEmitter } from "events";
 
-const MIC_CHECK_BIN = import.meta.dir + "/mic-check";
+const MIC_CHECK_BIN = process.cwd() + "/src/mic-check";
 
 export interface MicDetector extends EventEmitter {
   on(event: "mic-active", listener: (deviceName: string) => void): this;

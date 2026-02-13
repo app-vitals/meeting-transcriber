@@ -24,7 +24,7 @@ let recStatus: {
 } | null = null;
 
 function spawnRecStatus(onStop: () => void) {
-  const proc = Bun.spawn([import.meta.dir + "/rec-status"], {
+  const proc = Bun.spawn([process.cwd() + "/src/rec-status"], {
     stdin: "pipe",
     stdout: "pipe",
     stderr: "ignore",

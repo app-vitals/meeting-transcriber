@@ -10,7 +10,7 @@ import { join } from "path";
 import { mkdirSync } from "fs";
 import type { Segment } from "./transcribe.ts";
 
-const TRANSCRIPTS_DIR = join(import.meta.dir, "..", "transcripts");
+const TRANSCRIPTS_DIR = join(process.cwd(), "transcripts");
 
 interface LabeledSegment extends Segment {
   speaker: "You" | "Them";

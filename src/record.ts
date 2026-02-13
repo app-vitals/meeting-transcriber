@@ -11,7 +11,7 @@ import { spawn } from "child_process";
 import { join } from "path";
 import { mkdirSync } from "fs";
 
-const RECORDINGS_DIR = join(import.meta.dir, "..", "recordings");
+const RECORDINGS_DIR = join(process.cwd(), "recordings");
 
 export interface Recording {
   /** Path to the WAV file being recorded */
