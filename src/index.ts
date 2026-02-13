@@ -11,6 +11,8 @@
 
 import { createMicDetector } from "./detect.ts";
 import { startMicRecording, startSpeakerRecording, makeSessionTimestamp, type Recording } from "./record.ts";
+import { ensureModel, transcribe } from "./transcribe.ts";
+import { mergeTranscripts } from "./merge.ts";
 
 function notify(title: string, message: string) {
   Bun.spawn(["terminal-notifier", "-title", title, "-message", message]);
@@ -37,6 +39,7 @@ function formatDuration(ms: number): string {
 interface Session {
   mic: Recording;
   speaker: Recording;
+  sessionTimestamp: string;
   startedAt: Date;
 }
 
@@ -55,6 +58,22 @@ async function stopSession(session: Session): Promise<void> {
   }
 
   notify("Meeting Transcriber", `Recording saved (${formatDuration(duration)})`);
+
+  // Transcribe both recordings in parallel, then merge
+  try {
+    console.log("[transcribe] Transcribing...");
+    const [micSegments, speakerSegments] = await Promise.all([
+      transcribe(session.mic.filePath),
+      transcribe(session.speaker.filePath),
+    ]);
+    console.log(`[transcribe] Mic: ${micSegments.length} segments, Speaker: ${speakerSegments.length} segments`);
+
+    const transcriptPath = await mergeTranscripts(micSegments, speakerSegments, session.sessionTimestamp);
+    console.log(`[transcribe] Saved: ${transcriptPath}`);
+    notify("Meeting Transcriber", "Transcript ready");
+  } catch (err) {
+    console.error("[transcribe] Error:", err);
+  }
 }
 
 /** Check that BlackHole 2ch is installed and visible as an audio device. */
@@ -81,6 +100,9 @@ if (!blackHoleAvailable) {
 }
 
 console.log("BlackHole 2ch detected. Speaker recording enabled.");
+
+await ensureModel();
+
 console.log("Watching for microphone activation...");
 console.log("Press Ctrl+C to exit.\n");
 
@@ -109,7 +131,7 @@ detector.on("mic-active", async (deviceName: string) => {
   const speaker = startSpeakerRecording(sessionTimestamp);
   const startedAt = new Date();
 
-  currentSession = { mic, speaker, startedAt };
+  currentSession = { mic, speaker, sessionTimestamp, startedAt };
   console.log(`[record] Mic recording: ${mic.filePath}`);
   console.log(`[record] Speaker recording: ${speaker.filePath}`);
   notify("Meeting Transcriber", "Recording started (mic + speaker)");

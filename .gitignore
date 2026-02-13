@@ -10,9 +10,10 @@ dist
 src/mic-check
 src/rec-status
 
-# recordings and transcripts (local data)
+# recordings, transcripts, and models (local data)
 recordings/
 transcripts/
+models/
 
 # code coverage
 coverage
