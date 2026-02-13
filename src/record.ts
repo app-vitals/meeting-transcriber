@@ -1,7 +1,9 @@
 /**
- * Record audio from the microphone using ffmpeg.
+ * Record audio from microphone and speaker using SoX (rec).
  *
- * Captures from a specific macOS audio input device by name via AVFoundation.
+ * SoX uses CoreAudio directly, avoiding ffmpeg's avfoundation layer
+ * which produces clicks/pops with virtual audio devices like BlackHole.
+ *
  * Outputs WAV files to the recordings/ directory.
  */
 
@@ -20,65 +22,74 @@ export interface Recording {
   stop(): Promise<string>;
 }
 
+/** Create a shared session timestamp for pairing mic + speaker files. */
+export function makeSessionTimestamp(): string {
+  return new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+}
+
 /**
- * Start recording from a specific microphone by name.
- * ffmpeg avfoundation accepts device names directly.
+ * Start SoX `rec` capturing from an audio device.
+ * @param audiodev - AUDIODEV value to select device, or undefined for system default input
  */
-export function startMicRecording(deviceName: string): Recording {
+function startRecording(prefix: string, audiodev: string | undefined, sessionTimestamp: string): Recording {
   mkdirSync(RECORDINGS_DIR, { recursive: true });
 
-  const now = new Date();
-  const timestamp = now.toISOString().replace(/[:.]/g, "-").slice(0, 19);
-  const filePath = join(RECORDINGS_DIR, `mic_${timestamp}.wav`);
+  const filePath = join(RECORDINGS_DIR, `${prefix}_${sessionTimestamp}.wav`);
 
-  const ffmpegProc = spawn(
-    "ffmpeg",
+  const env = { ...process.env };
+  if (audiodev) {
+    env.AUDIODEV = audiodev;
+  }
+
+  const proc = spawn(
+    "rec",
     [
-      "-f", "avfoundation",
-      "-i", `:${deviceName}`,
-      "-ac", "1",           // mono
-      "-ar", "16000",       // 16kHz (good for speech, matches whisper expectations)
-      "-acodec", "pcm_s16le",
-      "-y",                 // overwrite if exists
+      "-c", "1",
+      "-b", "16",
       filePath,
+      "rate", "16000",   // downsample to 16kHz (CoreAudio ignores -r flag)
     ],
     {
+      env,
       stdio: ["pipe", "ignore", "pipe"],
     },
   );
 
   let stderrOutput = "";
-  ffmpegProc.stderr?.on("data", (chunk: Buffer) => {
+  proc.stderr?.on("data", (chunk: Buffer) => {
     stderrOutput += chunk.toString();
   });
 
-  const recording: Recording = {
+  const exited = new Promise<number | null>((resolve) => {
+    proc.on("close", (code) => resolve(code));
+  });
+
+  return {
     filePath,
-    startedAt: now,
-    stop: () => {
-      return new Promise<string>((resolve, reject) => {
-        ffmpegProc.on("close", (code) => {
-          if (code === 0 || code === 255) {
-            // 255 is normal for ffmpeg when stopped via 'q'
-            resolve(filePath);
-          } else {
-            reject(
-              new Error(
-                `ffmpeg exited with code ${code}\n${stderrOutput.slice(-500)}`,
-              ),
-            );
-          }
-        });
-
-        ffmpegProc.on("error", reject);
-
-        // Send 'q' to ffmpeg stdin to gracefully stop recording
-        // This ensures the WAV header is written correctly
-        ffmpegProc.stdin?.write("q");
-        ffmpegProc.stdin?.end();
-      });
+    startedAt: new Date(),
+    stop: async () => {
+      proc.kill("SIGINT");
+      const code = await exited;
+      if (code === 0 || code === null) {
+        return filePath;
+      }
+      throw new Error(
+        `rec (sox) exited with code ${code}\n${stderrOutput.slice(-500)}`,
+      );
     },
   };
+}
 
-  return recording;
+/**
+ * Start recording from the default system input (microphone).
+ */
+export function startMicRecording(sessionTimestamp: string): Recording {
+  return startRecording("mic", undefined, sessionTimestamp);
+}
+
+/**
+ * Start recording system/speaker audio from BlackHole 2ch.
+ */
+export function startSpeakerRecording(sessionTimestamp: string): Recording {
+  return startRecording("speaker", "BlackHole 2ch", sessionTimestamp);
 }

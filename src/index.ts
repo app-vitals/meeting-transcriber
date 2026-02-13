@@ -1,7 +1,8 @@
 /**
  * Meeting Transcriber - Main entry point
  *
- * Watches for microphone activation, auto-records, and provides
+ * Watches for microphone activation, auto-records both mic (user) and
+ * speaker (other participants via BlackHole 2ch), and provides
  * a menu bar indicator to stop recording.
  *
  * Usage:
@@ -9,7 +10,7 @@
  */
 
 import { createMicDetector } from "./detect.ts";
-import { startMicRecording, type Recording } from "./record.ts";
+import { startMicRecording, startSpeakerRecording, makeSessionTimestamp, type Recording } from "./record.ts";
 
 function notify(title: string, message: string) {
   Bun.spawn(["terminal-notifier", "-title", title, "-message", message]);
@@ -33,46 +34,85 @@ function formatDuration(ms: number): string {
   return mins > 0 ? `${mins}m ${remainingSecs}s` : `${remainingSecs}s`;
 }
 
-async function stopRecording(recording: Recording): Promise<void> {
-  const duration = Date.now() - recording.startedAt.getTime();
-  console.log(`[record] Stopping recording... (${formatDuration(duration)})`);
-  try {
-    const path = await recording.stop();
-    console.log(`[record] Saved: ${path}`);
-    notify("Meeting Transcriber", `Recording saved (${formatDuration(duration)})`);
-  } catch (err) {
-    console.error("[record] Error stopping recording:", err);
+interface Session {
+  mic: Recording;
+  speaker: Recording;
+  startedAt: Date;
+}
+
+async function stopSession(session: Session): Promise<void> {
+  const duration = Date.now() - session.startedAt.getTime();
+  console.log(`[record] Stopping recordings... (${formatDuration(duration)})`);
+
+  const results = await Promise.allSettled([session.mic.stop(), session.speaker.stop()]);
+
+  for (const result of results) {
+    if (result.status === "fulfilled") {
+      console.log(`[record] Saved: ${result.value}`);
+    } else {
+      console.error("[record] Error stopping recording:", result.reason);
+    }
   }
+
+  notify("Meeting Transcriber", `Recording saved (${formatDuration(duration)})`);
+}
+
+/** Check that BlackHole 2ch is installed and visible as an audio device. */
+async function checkBlackHole(): Promise<boolean> {
+  const proc = Bun.spawn(["system_profiler", "SPAudioDataType"], {
+    stdout: "pipe",
+    stderr: "ignore",
+  });
+  const output = await new Response(proc.stdout).text();
+  return output.includes("BlackHole 2ch");
 }
 
 // --- Main ---
 
+const blackHoleAvailable = await checkBlackHole();
+if (!blackHoleAvailable) {
+  console.error("BlackHole 2ch not found. Speaker recording requires it.\n");
+  console.error("Setup instructions:");
+  console.error("  1. brew install blackhole-2ch");
+  console.error("  2. Open Audio MIDI Setup → '+' → Create Multi-Output Device");
+  console.error("     → check both your speakers and 'BlackHole 2ch'");
+  console.error("  3. Set Multi-Output Device as system output in System Settings > Sound");
+  process.exit(1);
+}
+
+console.log("BlackHole 2ch detected. Speaker recording enabled.");
 console.log("Watching for microphone activation...");
 console.log("Press Ctrl+C to exit.\n");
 
-let currentRecording: Recording | null = null;
+let currentSession: Session | null = null;
 let currentRecStatus: { promise: Promise<void>; kill: () => void } | null = null;
 let shuttingDown = false;
 
 const detector = createMicDetector(2000);
 
 async function finishRecording() {
-  if (!currentRecording) return;
-  const recording = currentRecording;
-  currentRecording = null;
+  if (!currentSession) return;
+  const session = currentSession;
+  currentSession = null;
   currentRecStatus?.kill();
   currentRecStatus = null;
-  await stopRecording(recording);
+  await stopSession(session);
 }
 
 detector.on("mic-active", async (deviceName: string) => {
-  if (currentRecording || shuttingDown) return;
+  if (currentSession || shuttingDown) return;
 
   console.log(`[detect] Microphone activated: ${deviceName}`);
 
-  currentRecording = startMicRecording(deviceName);
-  console.log(`[record] Recording started: ${currentRecording.filePath}`);
-  notify("Meeting Transcriber", "Recording started");
+  const sessionTimestamp = makeSessionTimestamp();
+  const mic = startMicRecording(sessionTimestamp);
+  const speaker = startSpeakerRecording(sessionTimestamp);
+  const startedAt = new Date();
+
+  currentSession = { mic, speaker, startedAt };
+  console.log(`[record] Mic recording: ${mic.filePath}`);
+  console.log(`[record] Speaker recording: ${speaker.filePath}`);
+  notify("Meeting Transcriber", "Recording started (mic + speaker)");
 
   currentRecStatus = showRecStatus();
   currentRecStatus.promise.then(() => finishRecording());
