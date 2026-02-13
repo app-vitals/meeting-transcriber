@@ -32,12 +32,8 @@ bun run build
 
 DOMAIN="gui/$(id -u)"
 
-# Unload existing agent if loaded
-if launchctl list 2>/dev/null | grep -q "com.meeting-transcriber"; then
-  echo "Unloading existing LaunchAgent..."
-  launchctl bootout "$DOMAIN/com.meeting-transcriber" 2>/dev/null || true
-  sleep 1
-fi
+# Uninstall existing agent if present
+"$REPO_DIR/uninstall.sh"
 
 echo "Writing LaunchAgent plist..."
 mkdir -p "$HOME/Library/LaunchAgents"
