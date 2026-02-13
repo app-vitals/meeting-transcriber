@@ -1,0 +1,16 @@
+{
+  "name": "meeting-transcriber",
+  "module": "src/index.ts",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "swiftc src/mic-check.swift -framework CoreAudio -o src/mic-check && swiftc src/rec-status.swift -framework Cocoa -o src/rec-status",
+    "start": "bun run src/index.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}
