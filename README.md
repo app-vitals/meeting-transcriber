@@ -25,11 +25,13 @@ transcripts/
 Transcripts look like:
 
 ```markdown
-# Meeting Transcript — 2026-02-13 19:25
+# Meeting Transcript — 2026-02-13 19:25 (5:32)
 
-[00:00] **You:** Hello, can you hear me?
-[00:02] **Them:** Yes, I can hear you clearly.
-[00:05] **You:** Great, let's get started.
+**You:** Hello, can you hear me?
+
+**Them:** Yes, I can hear you clearly.
+
+**You:** Great, let's get started.
 ```
 
 ## Prerequisites
