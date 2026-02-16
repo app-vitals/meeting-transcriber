@@ -43,6 +43,10 @@ macOS-only meeting transcription pipeline: detect mic activation → record dual
 - `bun build --compile` produces a standalone `meeting-transcriber` binary — needed so macOS grants mic permissions to it directly
 - All file paths use `process.cwd()` (not `import.meta.dir`) for compatibility with the compiled binary
 
+## Granola Import
+
+`bun scripts/import-granola.ts` — import meeting transcripts from Granola into `transcripts/`. Requires the Granola MCP server (`npx -y mcp-remote https://mcp.granola.ai/mcp`) to have been run at least once to create OAuth tokens in `~/.mcp-auth/`. Idempotent — skips existing files. Rate limited to 1 request/minute with 10 min cooldown.
+
 ## Prerequisites
 
 `brew install blackhole-2ch sox whisper-cpp terminal-notifier` plus a Multi-Output Device in Audio MIDI Setup (speakers + BlackHole 2ch).
