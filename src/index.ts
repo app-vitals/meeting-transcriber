@@ -5,7 +5,7 @@
  * Daemon (mt watch): detect mic activation → record → transcribe → merge
  */
 
-import { realpathSync } from "fs";
+import { mkdirSync, realpathSync } from "fs";
 import { dirname, join } from "path";
 import { listTranscripts } from "./list.ts";
 
@@ -122,6 +122,14 @@ async function stopSession(session: Session): Promise<void> {
       transcribe(session.speaker.filePath, { vad: true }),
     ]);
     console.log(`[transcribe] Mic: ${micSegments.length} segments, Speaker: ${speakerSegments.length} segments`);
+
+    // Cache segments so remerge.ts can re-run the merge algorithm without re-transcribing
+    const cacheDir = join(process.cwd(), "eval-cache");
+    mkdirSync(cacheDir, { recursive: true });
+    await Promise.all([
+      Bun.write(join(cacheDir, `mic_${session.sessionTimestamp}.json`), JSON.stringify(micSegments, null, 2)),
+      Bun.write(join(cacheDir, `speaker_${session.sessionTimestamp}.json`), JSON.stringify(speakerSegments, null, 2)),
+    ]);
 
     const transcriptPath = await mergeTranscripts(micSegments, speakerSegments, session.sessionTimestamp);
     console.log(`[transcribe] Saved: ${transcriptPath}`);
