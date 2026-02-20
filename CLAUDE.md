@@ -54,7 +54,7 @@ Two scripts for iterating on `src/merge.ts` without re-running whisper:
 - `bun scripts/eval-merge.ts [timestamp] [--retranscribe]` — transcribe WAVs (cached to `eval-cache/`), show raw segments and merge preview for one or all sessions. Use `--retranscribe` to force re-transcription after changing transcribe options. Speaker channel always uses VAD; mic does not.
 - `bun scripts/remerge.ts` — batch re-run the merge algorithm from cached transcriptions and overwrite `transcripts/`. Fast (no whisper). Use this when iterating on merge logic only.
 
-`eval-cache/` is gitignored (28 JSON files, ~speaker+mic segments for each session).
+`eval-cache/` is gitignored. The production pipeline automatically saves `mic_<ts>.json` and `speaker_<ts>.json` there after each transcription, so `remerge.ts` works on all sessions — including those whose WAV files have been deleted (WAVs are auto-deleted after 30 days).
 
 ## Prerequisites
 

@@ -99,7 +99,7 @@ bun scripts/eval-merge.ts --retranscribe [timestamp]  # force re-transcription
 bun scripts/remerge.ts
 ```
 
-Cached segments live in `eval-cache/` (gitignored). When changing merge logic only, use `remerge.ts`. When changing transcription options (e.g. VAD settings), use `eval-merge.ts --retranscribe`.
+The production pipeline automatically saves mic and speaker segments to `eval-cache/` after each transcription, so `remerge.ts` covers all sessions — even after WAV files are deleted (auto-deleted after 30 days). When changing merge logic only, use `remerge.ts`. When changing transcription options (e.g. VAD settings), use `eval-merge.ts --retranscribe`.
 
 ## Menu bar
 
