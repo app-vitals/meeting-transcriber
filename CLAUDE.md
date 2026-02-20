@@ -47,6 +47,15 @@ macOS-only meeting transcription pipeline: detect mic activation → record dual
 
 `bun scripts/import-granola.ts` — import meeting transcripts from Granola into `transcripts/`. Requires the Granola MCP server (`npx -y mcp-remote https://mcp.granola.ai/mcp`) to have been run at least once to create OAuth tokens in `~/.mcp-auth/`. Idempotent — skips existing files. Rate limited to 1 request/minute with 10 min cooldown.
 
+## Merge Algorithm Dev
+
+Two scripts for iterating on `src/merge.ts` without re-running whisper:
+
+- `bun scripts/eval-merge.ts [timestamp] [--retranscribe]` — transcribe WAVs (cached to `eval-cache/`), show raw segments and merge preview for one or all sessions. Use `--retranscribe` to force re-transcription after changing transcribe options. Speaker channel always uses VAD; mic does not.
+- `bun scripts/remerge.ts` — batch re-run the merge algorithm from cached transcriptions and overwrite `transcripts/`. Fast (no whisper). Use this when iterating on merge logic only.
+
+`eval-cache/` is gitignored (28 JSON files, ~speaker+mic segments for each session).
+
 ## Prerequisites
 
 `brew install blackhole-2ch sox whisper-cpp terminal-notifier` plus a Multi-Output Device in Audio MIDI Setup (speakers + BlackHole 2ch).

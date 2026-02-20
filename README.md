@@ -84,7 +84,22 @@ bun run build   # compile Swift helpers + standalone binary
 bun run start   # run meeting-transcriber watch
 ```
 
-The whisper model (~1.5GB) downloads automatically on first transcription.
+The whisper model (~1.5GB) and Silero VAD model (~1MB) download automatically on first transcription.
+
+## Iterating on the merge algorithm
+
+Two scripts for developing `src/merge.ts` without re-running whisper:
+
+```bash
+# Transcribe WAVs, cache segments, show merge preview (one session or all)
+bun scripts/eval-merge.ts [timestamp]
+bun scripts/eval-merge.ts --retranscribe [timestamp]  # force re-transcription
+
+# Batch re-run merge from cache and overwrite transcripts/ (fast, no whisper)
+bun scripts/remerge.ts
+```
+
+Cached segments live in `eval-cache/` (gitignored). When changing merge logic only, use `remerge.ts`. When changing transcription options (e.g. VAD settings), use `eval-merge.ts --retranscribe`.
 
 ## Menu bar
 
