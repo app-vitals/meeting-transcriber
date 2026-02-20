@@ -15,6 +15,7 @@ meeting-transcriber
 recordings/
 transcripts/
 models/
+eval-cache/
 
 # code coverage
 coverage

@@ -119,7 +119,7 @@ async function stopSession(session: Session): Promise<void> {
     console.log("[transcribe] Transcribing...");
     const [micSegments, speakerSegments] = await Promise.all([
       transcribe(session.mic.filePath),
-      transcribe(session.speaker.filePath),
+      transcribe(session.speaker.filePath, { vad: true }),
     ]);
     console.log(`[transcribe] Mic: ${micSegments.length} segments, Speaker: ${speakerSegments.length} segments`);
 

@@ -14,46 +14,55 @@ const MODEL_NAME = "ggml-large-v3-turbo.bin";
 const MODEL_PATH = join(MODELS_DIR, MODEL_NAME);
 const MODEL_URL = `https://huggingface.co/ggerganov/whisper.cpp/resolve/main/${MODEL_NAME}`;
 
+const VAD_MODEL_NAME = "ggml-silero-v5.1.2.bin";
+const VAD_MODEL_PATH = join(MODELS_DIR, VAD_MODEL_NAME);
+const VAD_MODEL_URL = `https://huggingface.co/ggml-org/whisper-vad/resolve/main/${VAD_MODEL_NAME}`;
+
 export interface Segment {
   start: number;   // seconds
   end: number;     // seconds
   text: string;
 }
 
-/** Download the whisper model if not already cached. */
-export async function ensureModel(): Promise<void> {
-  if (existsSync(MODEL_PATH)) return;
-
-  console.log(`[transcribe] Downloading model ${MODEL_NAME}...`);
+async function downloadModel(name: string, path: string, url: string): Promise<void> {
+  console.log(`[transcribe] Downloading ${name}...`);
   mkdirSync(MODELS_DIR, { recursive: true });
-
   const proc = Bun.spawn(
-    ["curl", "-L", "--progress-bar", "-o", MODEL_PATH, MODEL_URL],
+    ["curl", "-L", "--progress-bar", "-o", path, url],
     { stdout: "inherit", stderr: "inherit" },
   );
   const code = await proc.exited;
-  if (code !== 0) {
-    throw new Error(`Failed to download model (exit code ${code})`);
-  }
-  console.log(`[transcribe] Model saved to ${MODEL_PATH}`);
+  if (code !== 0) throw new Error(`Failed to download ${name} (exit code ${code})`);
+  console.log(`[transcribe] Saved to ${path}`);
+}
+
+/** Download whisper and VAD models if not already cached. */
+export async function ensureModel(): Promise<void> {
+  await Promise.all([
+    existsSync(MODEL_PATH) || downloadModel(MODEL_NAME, MODEL_PATH, MODEL_URL),
+    existsSync(VAD_MODEL_PATH) || downloadModel(VAD_MODEL_NAME, VAD_MODEL_PATH, VAD_MODEL_URL),
+  ]);
 }
 
 /** Transcribe a WAV file and return timestamped segments. */
-export async function transcribe(wavPath: string): Promise<Segment[]> {
+export async function transcribe(wavPath: string, { vad = false }: { vad?: boolean } = {}): Promise<Segment[]> {
   const baseName = wavPath.replace(/.*\//, "").replace(/\.wav$/, "");
   const outputBase = join(tmpdir(), `whisper-${baseName}`);
 
-  const proc = Bun.spawn(
-    [
-      "whisper-cli",
-      "-m", MODEL_PATH,
-      "-f", wavPath,
-      "-oj",              // output JSON
-      "--no-prints",      // suppress progress output
-      "-of", outputBase,  // output file path (without extension)
-    ],
-    { stdout: "ignore", stderr: "pipe" },
-  );
+  const args = [
+    "whisper-cli",
+    "-m", MODEL_PATH,
+    "-f", wavPath,
+    "-oj",              // output JSON
+    "--no-prints",      // suppress progress output
+    "-of", outputBase,  // output file path (without extension)
+  ];
+
+  if (vad) {
+    args.push("--vad", "--vad-model", VAD_MODEL_PATH);
+  }
+
+  const proc = Bun.spawn(args, { stdout: "ignore", stderr: "pipe" });
 
   const stderr = await new Response(proc.stderr).text();
   const code = await proc.exited;

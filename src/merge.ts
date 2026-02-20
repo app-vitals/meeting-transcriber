@@ -13,9 +13,75 @@ import type { Segment } from "./transcribe.ts";
 
 const TRANSCRIPTS_DIR = join(process.cwd(), "transcripts");
 
-/** Normalize text for comparison: lowercase, collapse whitespace, strip punctuation. */
+/**
+ * Normalize text for comparison: lowercase, replace hyphens with spaces,
+ * strip punctuation, collapse whitespace, and remove filler words.
+ * Hyphens become spaces so "end-to-end" matches "end to end".
+ * Fillers ("uh", "um") are stripped so mic and speaker transcriptions
+ * of the same speech match even when whisper inserts fillers differently.
+ */
+const FILLERS = new Set(["uh", "um"]);
+
 function normalize(text: string): string {
-  return text.toLowerCase().replace(/[^\w\s]/g, "").replace(/\s+/g, " ").trim();
+  return text
+    .toLowerCase()
+    .replace(/-/g, " ")
+    .replace(/[^\w\s]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .split(" ")
+    .filter((w) => w && !FILLERS.has(w))
+    .join(" ");
+}
+
+/**
+ * Return true if the speaker channel captured no real speech.
+ * With VAD-filtered transcription, this is simply a zero-segment check.
+ */
+function isSpeakerDead(segments: Segment[]): boolean {
+  return segments.length === 0;
+}
+
+/**
+ * Remove mic hallucinations: whisper sometimes repeats an 8+ word phrase
+ * multiple times in a row when the mic input is silence or very quiet.
+ * Detect any 8-gram that appears 3+ times within a 120-word window and
+ * remove all words from the first repeat onward, up to the end of the loop.
+ */
+function removeMicHallucinations(words: string[]): string[] {
+  const NGRAM = 8;
+  const MIN_REPEATS = 3;
+  const WINDOW = 120;
+
+  let i = 0;
+  const result: string[] = [];
+
+  while (i < words.length) {
+    // Look ahead for a repeated NGRAM starting at position i
+    if (i + NGRAM <= words.length) {
+      const candidate = words.slice(i, i + NGRAM).join(" ");
+      let count = 1;
+      let j = i + NGRAM;
+      // Count overlapping occurrences within WINDOW words
+      while (j + NGRAM <= Math.min(i + WINDOW, words.length)) {
+        if (words.slice(j, j + NGRAM).join(" ") === candidate) {
+          count++;
+          j += NGRAM;
+        } else {
+          j++;
+        }
+      }
+      if (count >= MIN_REPEATS) {
+        // Skip all words up through the last occurrence of this repeated phrase
+        i = j;
+        continue;
+      }
+    }
+    result.push(words[i]);
+    i++;
+  }
+
+  return result;
 }
 
 /** Minimum consecutive word match to count as speaker text. */
@@ -24,7 +90,7 @@ const RUN_LENGTH = 5;
 type Run = { speaker: "You" | "Them"; text: string };
 
 /**
- * Walk mic words and label each as You or Them by checking for 5-word
+ * Walk mic words and label each as You or Them by checking for RUN_LENGTH-word
  * consecutive runs in the speaker text. Returns labeled runs of text.
  */
 function labelWords(micWords: string[], speakerText: string): Run[] {
@@ -63,9 +129,14 @@ function labelWords(micWords: string[], speakerText: string): Run[] {
   }
 
   // Absorb short You gaps between Them runs caused by transcription
-  // differences (e.g. whisper hears "will" on mic but "we'll" on speaker).
-  // Check that the surrounding Them runs are close together in the speaker
-  // text — if so, the gap is noise, not a real speaker change.
+  // differences, backchannels, or sentence completions.
+  //
+  // A "You" run of ≤ MIN_GAP_WORDS sandwiched between two Them runs is
+  // almost certainly noise: a misattributed word, a backchannel ("yeah",
+  // "okay"), or a whisper transcription difference — not a real speaker
+  // change. Absorb it unconditionally into the preceding Them run.
+  const MIN_GAP_WORDS = 7;
+
   const merged: Run[] = [runs[0]];
   for (let i = 1; i < runs.length; i++) {
     const prev = merged[merged.length - 1];
@@ -73,12 +144,8 @@ function labelWords(micWords: string[], speakerText: string): Run[] {
     const next = runs[i + 1];
 
     if (next && curr.speaker === "You" && prev.speaker === "Them" && next.speaker === "Them") {
-      const prevTail = prev.text.split(" ").slice(-3).join(" ");
-      const nextHead = next.text.split(" ").slice(0, 3).join(" ");
-      const prevPos = speakerText.lastIndexOf(prevTail);
-      const nextPos = prevPos !== -1 ? speakerText.indexOf(nextHead, prevPos) : -1;
-      // Allow up to ~5 words of speaker text between the two Them runs
-      if (prevPos !== -1 && nextPos !== -1 && nextPos - prevPos < prevTail.length + 30) {
+      const youWordCount = curr.text.split(" ").filter((w) => w).length;
+      if (youWordCount <= MIN_GAP_WORDS) {
         prev.text += " " + curr.text;
       } else {
         merged.push(curr);
@@ -121,21 +188,10 @@ export async function mergeTranscripts(
 ): Promise<string> {
   mkdirSync(TRANSCRIPTS_DIR, { recursive: true });
 
+  const speakerDead = isSpeakerDead(speakerSegments);
+
   const micText = micSegments.map((s) => s.text).join(" ").trim();
-  const micWords = micText.split(/\s+/);
-  const normalizedMicWords = normalize(micText).split(" ");
-  const speakerText = normalize(speakerSegments.map((s) => s.text).join(" "));
-
-  const runs = labelWords(normalizedMicWords, speakerText);
-
-  // Map normalized runs back to original-case words
-  let wordIndex = 0;
-  const labeledRuns = runs.map((run) => {
-    const count = run.text.split(" ").length;
-    const original = micWords.slice(wordIndex, wordIndex + count).join(" ");
-    wordIndex += count;
-    return { speaker: run.speaker, text: original };
-  });
+  const micWords = removeMicHallucinations(micText.split(/\s+/));
 
   // Calculate total duration
   const lastSeg = micSegments[micSegments.length - 1];
@@ -148,8 +204,28 @@ export async function mergeTranscripts(
 
   let md = `# Meeting Transcript — ${displayDate} (${formatDuration(duration)})\n\n`;
 
-  for (const run of labeledRuns) {
-    md += `**${run.speaker}:** ${run.text}\n\n`;
+  if (speakerDead) {
+    // No speaker audio captured — can't diarize, output raw transcript
+    md += `*[Speaker separation unavailable — only mic audio captured]*\n\n`;
+    md += micWords.join(" ") + "\n";
+  } else {
+    const normalizedMicWords = normalize(micWords.join(" ")).split(" ");
+    const speakerText = normalize(speakerSegments.map((s) => s.text).join(" "));
+
+    const runs = labelWords(normalizedMicWords, speakerText);
+
+    // Map normalized runs back to original-case words
+    let wordIndex = 0;
+    const labeledRuns = runs.map((run) => {
+      const count = run.text.split(" ").length;
+      const original = micWords.slice(wordIndex, wordIndex + count).join(" ");
+      wordIndex += count;
+      return { speaker: run.speaker, text: original };
+    });
+
+    for (const run of labeledRuns) {
+      md += `**${run.speaker}:** ${run.text}\n\n`;
+    }
   }
 
   const filePath = join(TRANSCRIPTS_DIR, `${sessionTimestamp}.md`);
