@@ -45,14 +45,14 @@ let recStatus: {
   stdin: Bun.FileSink;
 } | null = null;
 
-function spawnRecStatus(onStop: () => void) {
+function spawnRecStatus(onStop: () => void, onStart: () => void) {
   const proc = Bun.spawn([process.cwd() + "/src/rec-status"], {
     stdin: "pipe",
     stdout: "pipe",
     stderr: "ignore",
   });
 
-  // Listen for "stop" messages from clicks
+  // Listen for "start" and "stop" messages from clicks
   const reader = proc.stdout.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
@@ -65,6 +65,7 @@ function spawnRecStatus(onStop: () => void) {
       buffer = lines.pop()!;
       for (const line of lines) {
         if (line.trim() === "stop") onStop();
+        else if (line.trim() === "start") onStart();
       }
     }
   })();
@@ -170,7 +171,7 @@ console.log("BlackHole 2ch detected. Speaker recording enabled.");
 
 await ensureModel();
 
-spawnRecStatus(() => finishRecording());
+spawnRecStatus(() => finishRecording(), () => startManualRecording());
 
 console.log("Watching for microphone activation...");
 console.log("Press Ctrl+C to exit.\n");
@@ -186,6 +187,19 @@ async function finishRecording() {
   currentSession = null;
   sendRecStatus("idle");
   await stopSession(session);
+}
+
+function startManualRecording() {
+  if (currentSession || shuttingDown) return;
+  console.log("[detect] Manual recording started via menu bar");
+  const sessionTimestamp = makeSessionTimestamp();
+  const mic = startMicRecording(sessionTimestamp);
+  const speaker = startSpeakerRecording(sessionTimestamp);
+  const startedAt = new Date();
+  currentSession = { mic, speaker, sessionTimestamp, startedAt };
+  console.log(`[record] Mic recording: ${mic.filePath}`);
+  console.log(`[record] Speaker recording: ${speaker.filePath}`);
+  notify("Meeting Transcriber", "Recording started (mic + speaker)");
 }
 
 detector.on("mic-active", async (deviceName: string) => {

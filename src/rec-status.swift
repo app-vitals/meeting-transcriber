@@ -63,10 +63,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc func buttonClicked() {
-        guard isRecording else { return }
-        print("stop")
-        fflush(stdout)
-        setIdle()
+        if isRecording {
+            print("stop")
+            fflush(stdout)
+            setIdle()
+        } else {
+            print("start")
+            fflush(stdout)
+            setRecording()
+        }
     }
 }
 
