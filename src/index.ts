@@ -5,7 +5,7 @@
  * Daemon (mt watch): detect mic activation → record → transcribe → merge
  */
 
-import { mkdirSync, realpathSync } from "fs";
+import { mkdirSync, realpathSync, unlinkSync } from "fs";
 import { dirname, join } from "path";
 import { listTranscripts } from "./list.ts";
 
@@ -111,6 +111,16 @@ async function stopSession(session: Session): Promise<void> {
     } else {
       console.error("[record] Error stopping recording:", result.reason);
     }
+  }
+
+  // Discard recordings shorter than 1 minute — likely accidental triggers
+  if (duration < 60 * 1000) {
+    console.log(`[record] Recording too short (${formatDuration(duration)}), deleting.`);
+    for (const filePath of [session.mic.filePath, session.speaker.filePath]) {
+      try { unlinkSync(filePath); } catch {}
+    }
+    notify("Meeting Transcriber", `Recording deleted (too short: ${formatDuration(duration)})`);
+    return;
   }
 
   notify("Meeting Transcriber", `Recording saved (${formatDuration(duration)})`);
