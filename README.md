@@ -103,4 +103,7 @@ The production pipeline automatically saves mic and speaker segments to `eval-ca
 
 ## Menu bar
 
-A gray **REC** indicator appears in the menu bar when idle. It turns red during recording. Click it to stop.
+A **REC** indicator lives in the menu bar at all times:
+
+- **Gray REC** — idle. Click to start recording manually (useful when no meeting app is open).
+- **Red REC** — recording. Click to stop and trigger transcription.
