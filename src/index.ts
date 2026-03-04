@@ -181,7 +181,33 @@ console.log("BlackHole 2ch detected. Speaker recording enabled.");
 
 await ensureModel();
 
-spawnRecStatus(() => finishRecording(), () => startManualRecording());
+if (process.env.NO_REC_STATUS === "1") {
+  // Running under the Swift menu bar app — read start/stop commands from stdin
+  // instead of spawning the rec-status helper subprocess.
+  (async () => {
+    const reader = process.stdin.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop()!;
+        for (const line of lines) {
+          const cmd = line.trim();
+          if (cmd === "start") startManualRecording();
+          else if (cmd === "stop") finishRecording();
+        }
+      }
+    } catch {
+      // stdin closed — parent app exited
+    }
+  })();
+} else {
+  spawnRecStatus(() => finishRecording(), () => startManualRecording());
+}
 
 console.log("Watching for microphone activation...");
 console.log("Press Ctrl+C to exit.\n");
