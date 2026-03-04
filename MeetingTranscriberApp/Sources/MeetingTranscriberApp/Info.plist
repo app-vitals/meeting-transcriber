@@ -16,6 +16,8 @@
     <string>1.0</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>Meeting Transcriber needs microphone access to detect and record meetings.</string>
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>Meeting Transcriber captures system audio to record other participants in meetings. No screen content is captured.</string>
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
 </dict>

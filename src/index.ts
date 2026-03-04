@@ -32,7 +32,7 @@ if (subcommand === "list") {
 }
 
 import { createMicDetector } from "./detect.ts";
-import { startMicRecording, startSpeakerRecording, makeSessionTimestamp, cleanOldRecordings, type Recording } from "./record.ts";
+import { startMicRecording, startSpeakerRecording, makeSessionTimestamp, cleanOldRecordings, isMacOS13OrLater, type Recording } from "./record.ts";
 import { ensureModel, transcribe } from "./transcribe.ts";
 import { mergeTranscripts } from "./merge.ts";
 
@@ -166,18 +166,23 @@ async function checkBlackHole(): Promise<boolean> {
 
 // --- Main ---
 
-const blackHoleAvailable = await checkBlackHole();
-if (!blackHoleAvailable) {
-  console.error("BlackHole 2ch not found. Speaker recording requires it.\n");
-  console.error("Setup instructions:");
-  console.error("  1. brew install blackhole-2ch");
-  console.error("  2. Open Audio MIDI Setup → '+' → Create Multi-Output Device");
-  console.error("     → check both your speakers and 'BlackHole 2ch'");
-  console.error("  3. Set Multi-Output Device as system output in System Settings > Sound");
-  process.exit(1);
+if (isMacOS13OrLater()) {
+  // ScreenCaptureKit handles system audio directly — no BlackHole required.
+  console.log("macOS 13+ detected. Using ScreenCaptureKit for speaker audio.");
+} else {
+  // macOS 12 fallback: require BlackHole 2ch + Multi-Output Device setup.
+  const blackHoleAvailable = await checkBlackHole();
+  if (!blackHoleAvailable) {
+    console.error("BlackHole 2ch not found. Speaker recording requires it on macOS 12.\n");
+    console.error("Setup instructions:");
+    console.error("  1. brew install blackhole-2ch");
+    console.error("  2. Open Audio MIDI Setup → '+' → Create Multi-Output Device");
+    console.error("     → check both your speakers and 'BlackHole 2ch'");
+    console.error("  3. Set Multi-Output Device as system output in System Settings > Sound");
+    process.exit(1);
+  }
+  console.log("BlackHole 2ch detected. Speaker recording enabled (macOS 12 path).");
 }
-
-console.log("BlackHole 2ch detected. Speaker recording enabled.");
 
 await ensureModel();
 
