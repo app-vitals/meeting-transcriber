@@ -8,11 +8,13 @@ class MenuBarController: NSObject, NSMenuDelegate {
     private var statusItem: NSStatusItem!
     private let appState: AppState
     private let processManager: ProcessManager
+    private let onShowSetupWizard: () -> Void
     private let menu = NSMenu()
 
-    init(appState: AppState, processManager: ProcessManager) {
+    init(appState: AppState, processManager: ProcessManager, onShowSetupWizard: @escaping () -> Void) {
         self.appState = appState
         self.processManager = processManager
+        self.onShowSetupWizard = onShowSetupWizard
         super.init()
         setupStatusItem()
         appState.onChange = { [weak self] in
@@ -101,6 +103,16 @@ class MenuBarController: NSObject, NSMenuDelegate {
 
         menu.addItem(.separator())
 
+        let wizardItem = NSMenuItem(
+            title: "Setup Wizard…",
+            action: #selector(runSetupWizard),
+            keyEquivalent: ""
+        )
+        wizardItem.target = self
+        menu.addItem(wizardItem)
+
+        menu.addItem(.separator())
+
         let quitItem = NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
@@ -114,6 +126,10 @@ class MenuBarController: NSObject, NSMenuDelegate {
 
     @objc private func stopRecording() {
         processManager.stopRecording()
+    }
+
+    @objc private func runSetupWizard() {
+        onShowSetupWizard()
     }
 
     @objc private func quitApp() {

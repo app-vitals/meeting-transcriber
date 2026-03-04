@@ -7,15 +7,33 @@
 
 import { join } from "path";
 import { existsSync, mkdirSync, unlinkSync } from "fs";
-import { tmpdir } from "os";
+import { tmpdir, homedir } from "os";
 
-const MODELS_DIR = join(process.cwd(), "models");
+// Primary model location: ~/Library/Application Support/MeetingTranscriber/models/
+// (populated by the Swift onboarding wizard on first launch)
+// Fallback: process.cwd()/models (legacy path for CLI-only installs without the .app)
+const APP_SUPPORT_MODELS_DIR = join(
+  homedir(),
+  "Library",
+  "Application Support",
+  "MeetingTranscriber",
+  "models"
+);
+const LEGACY_MODELS_DIR = join(process.cwd(), "models");
+const MODELS_DIR = APP_SUPPORT_MODELS_DIR;
+
+function resolveModelPath(name: string): string {
+  const appSupportPath = join(APP_SUPPORT_MODELS_DIR, name);
+  if (existsSync(appSupportPath)) return appSupportPath;
+  return join(LEGACY_MODELS_DIR, name);
+}
+
 const MODEL_NAME = "ggml-large-v3-turbo.bin";
-const MODEL_PATH = join(MODELS_DIR, MODEL_NAME);
+const MODEL_PATH = resolveModelPath(MODEL_NAME);
 const MODEL_URL = `https://huggingface.co/ggerganov/whisper.cpp/resolve/main/${MODEL_NAME}`;
 
 const VAD_MODEL_NAME = "ggml-silero-v5.1.2.bin";
-const VAD_MODEL_PATH = join(MODELS_DIR, VAD_MODEL_NAME);
+const VAD_MODEL_PATH = resolveModelPath(VAD_MODEL_NAME);
 const VAD_MODEL_URL = `https://huggingface.co/ggml-org/whisper-vad/resolve/main/${VAD_MODEL_NAME}`;
 
 export interface Segment {

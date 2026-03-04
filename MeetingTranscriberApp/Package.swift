@@ -15,6 +15,8 @@ let package = Package(
                     "-sectcreate", "__TEXT", "__info_plist",
                     "Sources/MeetingTranscriberApp/Info.plist",
                 ]),
+                .linkedFramework("AVFoundation"),
+                .linkedFramework("ScreenCaptureKit"),
             ]
         ),
     ]
