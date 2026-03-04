@@ -4,7 +4,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "build": "swiftc src/mic-check.swift -framework CoreAudio -o src/mic-check && swiftc src/rec-status.swift -framework Cocoa -o src/rec-status && bun build --compile src/index.ts --outfile meeting-transcriber",
+    "build": "swiftc src/mic-check.swift -framework CoreAudio -o src/mic-check && swiftc src/rec-status.swift -framework Cocoa -o src/rec-status && swiftc src/system-audio-capture.swift -framework ScreenCaptureKit -framework CoreMedia -o src/system-audio-capture && bun build --compile src/index.ts --outfile meeting-transcriber",
     "start": "./meeting-transcriber"
   },
   "devDependencies": {

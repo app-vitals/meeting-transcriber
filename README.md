@@ -7,7 +7,7 @@ Auto-records and transcribes meetings on macOS. Detects when a meeting app activ
 1. Polls CoreAudio for microphone activation (e.g. Zoom, Meet, FaceTime)
 2. Records two audio streams simultaneously:
    - **Mic** — your voice via the system default input (SoX)
-   - **Speaker** — other participants via BlackHole 2ch virtual audio (SoX)
+   - **Speaker** — other participants via ScreenCaptureKit (macOS 13+) or BlackHole 2ch (macOS 12 fallback)
 3. On stop, transcribes both with whisper.cpp (large-v3-turbo model)
 4. Merges into a single timeline, deduping speaker bleed from the mic
 
@@ -37,10 +37,20 @@ Transcripts look like:
 ## Prerequisites
 
 ```bash
-brew install blackhole-2ch sox whisper-cpp terminal-notifier
+brew install sox whisper-cpp terminal-notifier
 ```
 
-Then set up the Multi-Output Device:
+### System audio (macOS 13+)
+
+On macOS 13 (Ventura) and later, speaker audio is captured via **ScreenCaptureKit** — no extra software needed. Grant **Screen Recording** permission when prompted on first launch.
+
+### System audio (macOS 12 fallback)
+
+On macOS 12, install BlackHole and set up a Multi-Output Device manually:
+
+```bash
+brew install blackhole-2ch
+```
 
 1. Open **Audio MIDI Setup** → "+" → **Create Multi-Output Device**
 2. Check both your speakers and **BlackHole 2ch**
