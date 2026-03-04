@@ -118,12 +118,10 @@ final class AudioCapture: NSObject, SCStreamOutput, SCStreamDelegate {
         writeQ.sync { self.finalised = true }
         let bytes = pcmBytesWritten
         handle.seek(toFileOffset: 0)
-        writeWavHeader(handle: fileHandle, dataBytes: bytes)
+        writeWavHeader(handle: handle, dataBytes: bytes)
         try? handle.close()
         fputs("[system-audio-capture] Wrote \(bytes) bytes of PCM audio.\n", stderr)
     }
-
-    private var fileHandle: FileHandle { handle }
 }
 
 // MARK: - Entry point

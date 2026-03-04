@@ -150,7 +150,7 @@ function startSCKitSpeakerRecording(sessionTimestamp: string): Recording {
     stop: async () => {
       proc.kill("SIGTERM");
       const code = await exited;
-      if (code === 0 || code === null || code === 2 /* SIGINT */) {
+      if (code === 0 || code === null) {
         return filePath;
       }
       throw new Error(
