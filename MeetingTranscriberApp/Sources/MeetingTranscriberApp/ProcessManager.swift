@@ -14,6 +14,10 @@ class ProcessManager {
 
     weak var appState: AppState?
 
+    /// Called on the main thread with the transcript filename stem
+    /// (e.g. "2026-02-13T14-30-00") when the engine saves a new transcript.
+    var onTranscriptSaved: ((String) -> Void)?
+
     func start() {
         launchEngine()
     }
@@ -110,7 +114,19 @@ class ProcessManager {
                 DispatchQueue.main.async { self.appState?.recordingState = .processing }
             } else if l.contains("[transcribe] Saved:") || l.contains("Watching for microphone")
                         || l.contains("Recording deleted") {
-                DispatchQueue.main.async { self.appState?.recordingState = .idle }
+                // Extract transcript stem from "[transcribe] Saved: /path/to/STEM.md"
+                let savedStem: String?
+                if l.contains("[transcribe] Saved:"),
+                   let savedRange = l.range(of: "[transcribe] Saved: ") {
+                    let path = String(l[savedRange.upperBound...]).trimmingCharacters(in: .whitespaces)
+                    savedStem = URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
+                } else {
+                    savedStem = nil
+                }
+                DispatchQueue.main.async {
+                    self.appState?.recordingState = .idle
+                    if let stem = savedStem { self.onTranscriptSaved?(stem) }
+                }
             }
         }
     }
