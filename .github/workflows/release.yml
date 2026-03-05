@@ -150,9 +150,7 @@ Auto-records and transcribes your meetings on macOS. Detects when a meeting app 
 
 Install once via Homebrew:
 
-```
-brew install sox whisper-cpp
-```
+    brew install sox whisper-cpp
 
 ### What's new
 
