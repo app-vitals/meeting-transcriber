@@ -58,7 +58,20 @@ brew install blackhole-2ch
 
 ## Install
 
-### GUI app (recommended)
+### DMG (recommended — no terminal required)
+
+1. Download the latest **MeetingTranscriber.dmg** from [GitHub Releases](https://github.com/openclaw-ai/meeting-transcriber/releases/latest)
+2. Open the DMG and drag **Meeting Transcriber** to your Applications folder
+3. Launch it — the app lives in your menu bar
+4. Follow the onboarding flow to grant **Microphone** and **Screen Recording** permissions
+
+Then install runtime dependencies once:
+
+```bash
+brew install sox whisper-cpp
+```
+
+### Build from source (GUI app)
 
 Build and launch the menu bar app:
 

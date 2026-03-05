@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!--
+        Hardened Runtime entitlements for Meeting Transcriber.
+
+        App Sandbox is intentionally disabled — the engine subprocess (Bun) and
+        helper binaries (mic-check, system-audio-capture) require unrestricted
+        filesystem and IPC access that the sandbox would block.
+
+        Microphone and Screen Recording access are granted at runtime by TCC
+        (Transparency, Consent, and Control) — not entitlements — so those keys
+        are not present here. The usage description strings in Info.plist trigger
+        the TCC prompt on first use.
+    -->
+
+    <!-- Allow JIT / unsigned executable memory — required by Bun's JS engine -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+
+    <!--
+        Disable library validation so the bundled helper binaries
+        (mic-check, rec-status, system-audio-capture, meeting-transcriber)
+        can be loaded without requiring them to carry the same team ID.
+        Each binary is individually signed in the build script.
+    -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+</dict>
+</plist>

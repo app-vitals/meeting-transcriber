@@ -59,6 +59,14 @@ class ProcessManager {
         proc.executableURL = URL(fileURLWithPath: binary)
         proc.arguments = ["watch"]
 
+        // Set the working directory to the same folder as this app's executable so
+        // the engine resolves its helper paths (process.cwd() + "/src/mic-check" etc.)
+        // correctly both in the .app bundle (Contents/MacOS/) and during development.
+        let appExecDir = URL(fileURLWithPath: ProcessInfo.processInfo.arguments[0])
+            .resolvingSymlinksInPath()
+            .deletingLastPathComponent()
+        proc.currentDirectoryURL = appExecDir
+
         var env = ProcessInfo.processInfo.environment
         env["NO_REC_STATUS"] = "1"
         proc.environment = env
