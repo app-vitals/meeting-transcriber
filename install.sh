@@ -1,4 +1,7 @@
 #!/bin/bash
+# LEGACY: LaunchAgent-based auto-start. For GUI app users, auto-start is managed
+# via SMAppService (System Settings → Login Items) — no manual install step needed.
+# This script remains for CLI-only / headless usage of the meeting-transcriber binary.
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"

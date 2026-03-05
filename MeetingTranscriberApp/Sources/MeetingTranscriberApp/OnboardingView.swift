@@ -6,6 +6,7 @@ struct OnboardingView: View {
     enum Step: Int, CaseIterable { case welcome, permissions, download, done }
 
     @State private var step: Step = .welcome
+    @State private var launchAtLogin: Bool = true
     @StateObject private var perms = PermissionsManager()
     @StateObject private var downloader = ModelDownloadManager()
     let onComplete: () -> Void
@@ -58,6 +59,17 @@ struct OnboardingView: View {
                 Text("Meeting Transcriber will run in your menu bar and automatically detect when you start a meeting.")
                     .multilineTextAlignment(.center).foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                Toggle("Launch at Login", isOn: $launchAtLogin)
+                    .toggleStyle(.switch)
+                    .frame(maxWidth: 260)
+                    .onChange(of: launchAtLogin) { enabled in
+                        LoginItemManager.shared.setEnabled(enabled)
+                    }
+            }
+            .onAppear {
+                // Register by default (opt-out model). User may toggle off above.
+                LoginItemManager.shared.register()
+                launchAtLogin = LoginItemManager.shared.isEnabled
             }
         }
     }

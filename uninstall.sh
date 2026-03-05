@@ -1,4 +1,6 @@
 #!/bin/bash
+# LEGACY: Removes the LaunchAgent installed by install.sh.
+# For GUI app users, disable auto-start via Settings → Launch at Login instead.
 set -euo pipefail
 
 PLIST_NAME="com.meeting-transcriber.plist"
