@@ -10,14 +10,15 @@
  */
 
 import { join } from "path";
+import { homedir } from "os";
 import { existsSync, mkdirSync } from "fs";
 import { transcribe, ensureModel } from "../src/transcribe.ts";
 import { mergeTranscripts } from "../src/merge.ts";
 import type { Segment } from "../src/transcribe.ts";
 
-const RECORDINGS_DIR = join(process.cwd(), "recordings");
-const CACHE_DIR = join(process.cwd(), "eval-cache");
-const TRANSCRIPTS_DIR = join(process.cwd(), "transcripts");
+const RECORDINGS_DIR = join(homedir(), "recordings");
+const CACHE_DIR = join(homedir(), "eval-cache");
+const TRANSCRIPTS_DIR = join(homedir(), "transcripts");
 
 mkdirSync(CACHE_DIR, { recursive: true });
 
