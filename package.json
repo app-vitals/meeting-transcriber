@@ -7,6 +7,9 @@
     "build": "swiftc src/mic-check.swift -framework CoreAudio -o src/mic-check && swiftc src/rec-status.swift -framework Cocoa -o src/rec-status && swiftc src/system-audio-capture.swift -framework ScreenCaptureKit -framework CoreMedia -o src/system-audio-capture && bun build --compile src/index.ts --outfile meeting-transcriber",
     "start": "./meeting-transcriber"
   },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.78.0"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },
