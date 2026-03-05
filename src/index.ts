@@ -33,7 +33,7 @@ if (subcommand === "list") {
 
 import { createMicDetector } from "./detect.ts";
 import { startMicRecording, startSpeakerRecording, makeSessionTimestamp, cleanOldRecordings, isMacOS13OrLater, type Recording } from "./record.ts";
-import { ensureModel, transcribe } from "./transcribe.ts";
+import { transcribe } from "./transcribe.ts";
 import { mergeTranscripts } from "./merge.ts";
 
 function notify(title: string, message: string) {
@@ -184,7 +184,8 @@ if (isMacOS13OrLater()) {
   console.log("BlackHole 2ch detected. Speaker recording enabled (macOS 12 path).");
 }
 
-await ensureModel();
+// Model download is handled by the Swift onboarding wizard on first launch.
+// The engine is only started after onboarding completes and models are present.
 
 if (process.env.NO_REC_STATUS === "1") {
   // Running under the Swift menu bar app — read start/stop commands from stdin
