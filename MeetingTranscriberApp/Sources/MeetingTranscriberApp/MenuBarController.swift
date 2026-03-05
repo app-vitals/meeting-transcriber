@@ -9,12 +9,22 @@ class MenuBarController: NSObject, NSMenuDelegate {
     private let appState: AppState
     private let processManager: ProcessManager
     private let onShowSetupWizard: () -> Void
+    private let onViewTranscripts: () -> Void
+    private let onOpenTranscriptsFolder: () -> Void
     private let menu = NSMenu()
 
-    init(appState: AppState, processManager: ProcessManager, onShowSetupWizard: @escaping () -> Void) {
+    init(
+        appState: AppState,
+        processManager: ProcessManager,
+        onShowSetupWizard: @escaping () -> Void,
+        onViewTranscripts: @escaping () -> Void,
+        onOpenTranscriptsFolder: @escaping () -> Void
+    ) {
         self.appState = appState
         self.processManager = processManager
         self.onShowSetupWizard = onShowSetupWizard
+        self.onViewTranscripts = onViewTranscripts
+        self.onOpenTranscriptsFolder = onOpenTranscriptsFolder
         super.init()
         setupStatusItem()
         appState.onChange = { [weak self] in
@@ -103,6 +113,24 @@ class MenuBarController: NSObject, NSMenuDelegate {
 
         menu.addItem(.separator())
 
+        let viewTranscriptsItem = NSMenuItem(
+            title: "View Transcripts",
+            action: #selector(viewTranscripts),
+            keyEquivalent: "t"
+        )
+        viewTranscriptsItem.target = self
+        menu.addItem(viewTranscriptsItem)
+
+        let openFolderItem = NSMenuItem(
+            title: "Open Transcripts Folder",
+            action: #selector(openTranscriptsFolder),
+            keyEquivalent: ""
+        )
+        openFolderItem.target = self
+        menu.addItem(openFolderItem)
+
+        menu.addItem(.separator())
+
         let wizardItem = NSMenuItem(
             title: "Setup Wizard…",
             action: #selector(runSetupWizard),
@@ -126,6 +154,14 @@ class MenuBarController: NSObject, NSMenuDelegate {
 
     @objc private func stopRecording() {
         processManager.stopRecording()
+    }
+
+    @objc private func viewTranscripts() {
+        onViewTranscripts()
+    }
+
+    @objc private func openTranscriptsFolder() {
+        onOpenTranscriptsFolder()
     }
 
     @objc private func runSetupWizard() {

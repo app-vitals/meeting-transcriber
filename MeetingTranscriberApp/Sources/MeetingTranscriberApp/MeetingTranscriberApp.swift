@@ -24,15 +24,25 @@ struct MeetingTranscriberApp {
 class AppDelegate: NSObject, NSApplicationDelegate {
     let appState = AppState()
     let processManager = ProcessManager()
+    let transcriptStore = TranscriptStore()
     var menuBarController: MenuBarController?
     var onboardingWindow: NSWindow?
+    var transcriptViewerWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         processManager.appState = appState
+
+        // Auto-open viewer and highlight new transcript when transcription completes.
+        processManager.onTranscriptSaved = { [weak self] stem in
+            self?.showTranscriptViewer(highlightID: stem)
+        }
+
         menuBarController = MenuBarController(
             appState: appState,
             processManager: processManager,
-            onShowSetupWizard: { [weak self] in self?.showOnboarding(startEngineOnComplete: false) }
+            onShowSetupWizard: { [weak self] in self?.showOnboarding(startEngineOnComplete: false) },
+            onViewTranscripts: { [weak self] in self?.showTranscriptViewer() },
+            onOpenTranscriptsFolder: { [weak self] in self?.openTranscriptsFolder() }
         )
 
         if UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
@@ -48,6 +58,44 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return false
+    }
+
+    // MARK: - Transcript Viewer
+
+    func showTranscriptViewer(highlightID: String? = nil) {
+        // Update selection before showing the window so the view picks it up.
+        if let id = highlightID {
+            transcriptStore.selectedID = id
+        }
+
+        if let existing = transcriptViewerWindow, existing.isVisible {
+            existing.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        // Restore last-viewed transcript if no specific highlight was requested.
+        if transcriptStore.selectedID == nil {
+            transcriptStore.selectedID = UserDefaults.standard.string(forKey: "lastViewedTranscriptID")
+        }
+
+        let view = TranscriptWindowView(store: transcriptStore)
+        let controller = NSHostingController(rootView: view)
+        let window = NSWindow(contentViewController: controller)
+        window.title = "Meeting Transcripts"
+        window.setContentSize(NSSize(width: 900, height: 580))
+        window.minSize = NSSize(width: 600, height: 400)
+        window.styleMask = [.titled, .closable, .miniaturizable, .resizable]
+        window.isReleasedWhenClosed = false
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+
+        transcriptViewerWindow = window
+    }
+
+    private func openTranscriptsFolder() {
+        NSWorkspace.shared.open(TranscriptStore.defaultDir)
     }
 
     // MARK: - Onboarding
