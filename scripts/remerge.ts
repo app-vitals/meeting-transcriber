@@ -10,10 +10,11 @@
  */
 
 import { join } from "path";
+import { homedir } from "os";
 import { existsSync } from "fs";
 import { mergeTranscripts } from "../src/merge.ts";
 
-const CACHE_DIR = join(process.cwd(), "eval-cache");
+const CACHE_DIR = join(homedir(), "eval-cache");
 
 const args = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 

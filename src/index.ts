@@ -35,6 +35,7 @@ import { createMicDetector } from "./detect.ts";
 import { startMicRecording, startSpeakerRecording, makeSessionTimestamp, cleanOldRecordings, isMacOS13OrLater, type Recording } from "./record.ts";
 import { transcribe } from "./transcribe.ts";
 import { mergeTranscripts } from "./merge.ts";
+import { summarizeTranscript } from "./summarize.ts";
 
 function notify(title: string, message: string) {
   Bun.spawn(["terminal-notifier", "-title", title, "-message", message]);
@@ -144,6 +145,8 @@ async function stopSession(session: Session): Promise<void> {
 
     const transcriptPath = await mergeTranscripts(micSegments, speakerSegments, session.sessionTimestamp);
     console.log(`[transcribe] Saved: ${transcriptPath}`);
+
+    await summarizeTranscript(transcriptPath);
     notify("Meeting Transcriber", "Transcript ready");
 
     try { cleanOldRecordings(30); } catch (err) {

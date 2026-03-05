@@ -9,21 +9,25 @@
 
 set -euo pipefail
 
-# Locate the app bundle — prefer ~/Applications, fall back to /Applications
-if [ -d "$HOME/Applications/MeetingTranscriber.app" ]; then
-  APP_PATH="$HOME/Applications/MeetingTranscriber.app"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# When invoked from within the app bundle, $0 is already inside Contents/Resources/
+# so mt lives right next to this script. Fall back to known install locations for
+# standalone (terminal) use.
+if [ -f "$SCRIPT_DIR/mt" ]; then
+  MT_WRAPPER="$SCRIPT_DIR/mt"
+elif [ -d "$HOME/Applications/MeetingTranscriber.app" ]; then
+  MT_WRAPPER="$HOME/Applications/MeetingTranscriber.app/Contents/Resources/mt"
 elif [ -d "/Applications/MeetingTranscriber.app" ]; then
-  APP_PATH="/Applications/MeetingTranscriber.app"
+  MT_WRAPPER="/Applications/MeetingTranscriber.app/Contents/Resources/mt"
 else
   echo "Error: MeetingTranscriber.app not found in ~/Applications or /Applications." >&2
   echo "Install it first by opening the DMG and dragging the app to Applications." >&2
   exit 1
 fi
 
-MT_WRAPPER="$APP_PATH/Contents/Resources/mt"
-
 if [ ! -f "$MT_WRAPPER" ]; then
-  echo "Error: mt wrapper not found inside the app bundle at:" >&2
+  echo "Error: mt wrapper not found at:" >&2
   echo "  $MT_WRAPPER" >&2
   echo "Try reinstalling MeetingTranscriber from the latest DMG." >&2
   exit 1
