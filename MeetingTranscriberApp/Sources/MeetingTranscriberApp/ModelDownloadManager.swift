@@ -40,6 +40,35 @@ class ModelDownloadManager: NSObject, ObservableObject {
     private var taskToModel: [URLSessionDownloadTask: ModelSpec] = [:]
     private var pendingCount = 0
 
+    override init() {
+        super.init()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAppWillTerminate),
+            name: NSApplication.willTerminateNotification,
+            object: nil
+        )
+    }
+
+    /// Synchronously cancels active download tasks and stores resume data before process exit.
+    @objc private func handleAppWillTerminate() {
+        guard isDownloading else { return }
+        let snapshot = taskToModel
+        let sema = DispatchSemaphore(value: 0)
+        var remaining = snapshot.count
+        for (task, model) in snapshot {
+            task.cancel { resumeData in
+                if let resumeData {
+                    UserDefaults.standard.set(resumeData, forKey: model.resumeKey)
+                }
+                remaining -= 1
+                if remaining == 0 { sema.signal() }
+            }
+        }
+        _ = sema.wait(timeout: .now() + 5.0)
+        UserDefaults.standard.synchronize()
+    }
+
     var modelsExist: Bool {
         let fm = FileManager.default
         return fm.fileExists(atPath: Self.modelsDir.appendingPathComponent(Self.mainModel.name).path) &&
