@@ -123,6 +123,14 @@ private struct PermissionsStep: View {
                 onOpenSettings: { perms.openScreenSettings() },
                 onRecheck: { Task { await perms.requestScreenAccess() } }
             )
+            PermissionRow(
+                icon: "bell.fill", title: "Notifications",
+                detail: "Alerts you when a transcript is ready. Optional — app works without it.",
+                status: perms.notificationStatus,
+                onRequest: { perms.requestNotificationAccess() },
+                onOpenSettings: { perms.openNotificationSettings() },
+                onRecheck: { perms.refreshNotificationStatus() }
+            )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         // Poll mic status while waiting (cheap); screen refreshed manually via buttons.
