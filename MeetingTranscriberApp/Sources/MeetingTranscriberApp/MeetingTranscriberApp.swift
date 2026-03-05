@@ -1,5 +1,6 @@
 import Cocoa
 import SwiftUI
+import UserNotifications
 
 /// App entry point. Uses @main with a static main() so Swift Package Manager
 /// does not require a main.swift file.
@@ -25,12 +26,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let appState = AppState()
     let processManager = ProcessManager()
     let transcriptStore = TranscriptStore()
+    let notificationDelegate = NotificationDelegate()
     var menuBarController: MenuBarController?
     var onboardingWindow: NSWindow?
     var transcriptViewerWindow: NSWindow?
     var settingsWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Register notification delegate so clicks open the transcript viewer.
+        notificationDelegate.onTranscriptClicked = { [weak self] stem in
+            self?.showTranscriptViewer(highlightID: stem)
+        }
+        UNUserNotificationCenter.current().delegate = notificationDelegate
+
         processManager.appState = appState
 
         // Auto-open viewer and highlight new transcript when transcription completes.

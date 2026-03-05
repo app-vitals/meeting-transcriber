@@ -114,18 +114,24 @@ class ProcessManager {
                 DispatchQueue.main.async { self.appState?.recordingState = .processing }
             } else if l.contains("[transcribe] Saved:") || l.contains("Watching for microphone")
                         || l.contains("Recording deleted") {
-                // Extract transcript stem from "[transcribe] Saved: /path/to/STEM.md"
+                // Extract transcript stem and path from "[transcribe] Saved: /path/to/STEM.md"
                 let savedStem: String?
+                let savedPath: String?
                 if l.contains("[transcribe] Saved:"),
                    let savedRange = l.range(of: "[transcribe] Saved: ") {
                     let path = String(l[savedRange.upperBound...]).trimmingCharacters(in: .whitespaces)
                     savedStem = URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
+                    savedPath = path
                 } else {
                     savedStem = nil
+                    savedPath = nil
                 }
                 DispatchQueue.main.async {
                     self.appState?.recordingState = .idle
-                    if let stem = savedStem { self.onTranscriptSaved?(stem) }
+                    if let stem = savedStem, let path = savedPath {
+                        NotificationManager.shared.sendTranscriptReady(stem: stem, transcriptPath: path)
+                        self.onTranscriptSaved?(stem)
+                    }
                 }
             }
         }
