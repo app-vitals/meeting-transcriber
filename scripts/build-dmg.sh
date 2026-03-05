@@ -116,6 +116,10 @@ mkdir -p "$MACOS_DIR" "$SRC_DIR"
 cp "$REPO_DIR/MeetingTranscriberApp/Sources/MeetingTranscriberApp/Info.plist" \
    "$CONTENTS/Info.plist"
 
+# Stamp the release version into the bundle's Info.plist
+/usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$CONTENTS/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleVersion $VERSION" "$CONTENTS/Info.plist"
+
 # PkgInfo — required by macOS for a valid .app bundle
 printf 'APPL????' > "$CONTENTS/PkgInfo"
 

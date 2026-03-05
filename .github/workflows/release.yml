@@ -134,7 +134,7 @@ jobs:
 
           gh release create "$TAG" \
             --title "Meeting Transcriber $TAG" \
-            --notes "$(cat <<'NOTES'
+            --notes "$(cat <<NOTES
 ## Meeting Transcriber $TAG
 
 Auto-records and transcribes your meetings on macOS. Detects when a meeting app activates your microphone, records both your voice and other participants, then produces a labeled transcript with speaker attribution.
