@@ -12,6 +12,8 @@ class MenuBarController: NSObject, NSMenuDelegate {
     private let onViewTranscripts: () -> Void
     private let onOpenTranscriptsFolder: () -> Void
     private let onOpenSettings: () -> Void
+    private let onInstallCLI: () -> Void
+    private let onUninstallCLI: () -> Void
     private let menu = NSMenu()
 
     init(
@@ -20,7 +22,9 @@ class MenuBarController: NSObject, NSMenuDelegate {
         onShowSetupWizard: @escaping () -> Void,
         onViewTranscripts: @escaping () -> Void,
         onOpenTranscriptsFolder: @escaping () -> Void,
-        onOpenSettings: @escaping () -> Void
+        onOpenSettings: @escaping () -> Void,
+        onInstallCLI: @escaping () -> Void,
+        onUninstallCLI: @escaping () -> Void
     ) {
         self.appState = appState
         self.processManager = processManager
@@ -28,6 +32,8 @@ class MenuBarController: NSObject, NSMenuDelegate {
         self.onViewTranscripts = onViewTranscripts
         self.onOpenTranscriptsFolder = onOpenTranscriptsFolder
         self.onOpenSettings = onOpenSettings
+        self.onInstallCLI = onInstallCLI
+        self.onUninstallCLI = onUninstallCLI
         super.init()
         setupStatusItem()
         appState.onChange = { [weak self] in
@@ -152,6 +158,29 @@ class MenuBarController: NSObject, NSMenuDelegate {
 
         menu.addItem(.separator())
 
+        // CLI install / uninstall — show whichever is relevant
+        let mtLinkPath = (NSString("~/.local/bin/mt") as NSString).expandingTildeInPath
+        let cliInstalled = FileManager.default.fileExists(atPath: mtLinkPath)
+        if cliInstalled {
+            let uninstallCLIItem = NSMenuItem(
+                title: "Remove mt CLI",
+                action: #selector(uninstallCLI),
+                keyEquivalent: ""
+            )
+            uninstallCLIItem.target = self
+            menu.addItem(uninstallCLIItem)
+        } else {
+            let installCLIItem = NSMenuItem(
+                title: "Install mt CLI…",
+                action: #selector(installCLI),
+                keyEquivalent: ""
+            )
+            installCLIItem.target = self
+            menu.addItem(installCLIItem)
+        }
+
+        menu.addItem(.separator())
+
         let quitItem = NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
@@ -181,6 +210,14 @@ class MenuBarController: NSObject, NSMenuDelegate {
 
     @objc private func runSetupWizard() {
         onShowSetupWizard()
+    }
+
+    @objc private func installCLI() {
+        onInstallCLI()
+    }
+
+    @objc private func uninstallCLI() {
+        onUninstallCLI()
     }
 
     @objc private func quitApp() {

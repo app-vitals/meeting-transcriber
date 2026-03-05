@@ -71,6 +71,33 @@ Then install runtime dependencies once:
 brew install sox whisper-cpp
 ```
 
+### CLI power-user install (after DMG install)
+
+After dragging the app to Applications, install the `mt` command from the menu bar:
+
+**Menu bar → ● REC → Install mt CLI…**
+
+This symlinks `~/.local/bin/mt` to the `mt` wrapper inside the app bundle. Make sure `~/.local/bin` is in your PATH:
+
+```bash
+export PATH="$HOME/.local/bin:$PATH"   # add to ~/.zshrc
+```
+
+After that, all `mt` subcommands work from any terminal:
+
+```bash
+mt list              # list recent transcripts
+mt watch             # start the daemon manually
+```
+
+Reinstalling the app from a new DMG does not break the symlink — the target path (`Contents/Resources/mt`) stays stable across updates.
+
+To remove the CLI command, use **Menu bar → ● REC → Remove mt CLI**, or run:
+
+```bash
+rm ~/.local/bin/mt
+```
+
 ### Build from source (GUI app)
 
 Build and launch the menu bar app:
@@ -82,7 +109,7 @@ open MeetingTranscriberApp
 
 Auto-start on login is managed natively via **SMAppService** — the app registers itself during onboarding and appears in **System Settings → General → Login Items**. Toggle it on/off any time from the menu bar → **Settings…**.
 
-### CLI / headless (legacy)
+### CLI / headless (no GUI — legacy)
 
 ```bash
 ./install.sh
@@ -90,7 +117,7 @@ Auto-start on login is managed natively via **SMAppService** — the app registe
 
 This checks prerequisites, compiles Swift helpers and a standalone binary, installs a LaunchAgent (auto-starts on login via plist), and symlinks the binary to `~/.local/bin/mt`.
 
-> **Note:** `install.sh` / `uninstall.sh` use the legacy LaunchAgent approach. For GUI app users, SMAppService handles auto-start — no manual install step is needed.
+> **Note:** `install.sh` / `uninstall.sh` use the legacy LaunchAgent approach. For GUI app users, SMAppService handles auto-start — no manual install step is needed. Use this only for headless / server installs without the menu bar app.
 
 To uninstall the LaunchAgent:
 
@@ -100,7 +127,7 @@ To uninstall the LaunchAgent:
 
 ## CLI
 
-After install, `mt` is available in your PATH:
+After install (via DMG + "Install mt CLI…" menu item, or `./install.sh`), `mt` is available in your PATH:
 
 ```bash
 mt list              # 10 most recent transcripts (default)

@@ -9,9 +9,10 @@
 
 import { join } from "path";
 import { mkdirSync } from "fs";
+import { homedir } from "os";
 import type { Segment } from "./transcribe.ts";
 
-const TRANSCRIPTS_DIR = join(process.cwd(), "transcripts");
+const TRANSCRIPTS_DIR = join(homedir(), "transcripts");
 
 /**
  * Normalize text for comparison: lowercase, replace hyphens with spaces,

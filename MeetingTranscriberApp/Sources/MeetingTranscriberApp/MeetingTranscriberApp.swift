@@ -52,7 +52,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             onShowSetupWizard: { [weak self] in self?.showOnboarding(startEngineOnComplete: false) },
             onViewTranscripts: { [weak self] in self?.showTranscriptViewer() },
             onOpenTranscriptsFolder: { [weak self] in self?.openTranscriptsFolder() },
-            onOpenSettings: { [weak self] in self?.showSettings() }
+            onOpenSettings: { [weak self] in self?.showSettings() },
+            onInstallCLI: { [weak self] in self?.runCLIScript("install-cli-command.sh") },
+            onUninstallCLI: { [weak self] in self?.runCLIScript("uninstall-cli-command.sh") }
         )
 
         if UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
@@ -128,6 +130,63 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
 
         settingsWindow = window
+    }
+
+    // MARK: - CLI Install / Uninstall
+
+    /// Runs one of the CLI shell scripts from Contents/Resources/ and shows the output in an alert.
+    private func runCLIScript(_ scriptName: String) {
+        let executableURL = URL(fileURLWithPath: ProcessInfo.processInfo.arguments[0])
+            .resolvingSymlinksInPath()
+        let resourcesURL = executableURL
+            .deletingLastPathComponent()   // MacOS/
+            .deletingLastPathComponent()   // Contents/
+            .appendingPathComponent("Resources")
+        let scriptURL = resourcesURL.appendingPathComponent(scriptName)
+
+        guard FileManager.default.isExecutableFile(atPath: scriptURL.path) else {
+            showAlert(
+                title: "Script Not Found",
+                message: "Could not locate \(scriptName) in the app bundle.\nTry reinstalling from the latest DMG.",
+                style: .critical
+            )
+            return
+        }
+
+        let task = Process()
+        task.executableURL = URL(fileURLWithPath: "/bin/bash")
+        task.arguments = [scriptURL.path]
+
+        let pipe = Pipe()
+        task.standardOutput = pipe
+        task.standardError = pipe
+
+        do {
+            try task.run()
+            task.waitUntilExit()
+        } catch {
+            showAlert(title: "Error", message: error.localizedDescription, style: .critical)
+            return
+        }
+
+        let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        let success = task.terminationStatus == 0
+        showAlert(
+            title: success ? "Done" : "Error",
+            message: output.trimmingCharacters(in: .whitespacesAndNewlines),
+            style: success ? .informational : .critical
+        )
+    }
+
+    private func showAlert(title: String, message: String, style: NSAlert.Style) {
+        DispatchQueue.main.async {
+            let alert = NSAlert()
+            alert.messageText = title
+            alert.informativeText = message
+            alert.alertStyle = style
+            NSApp.activate(ignoringOtherApps: true)
+            alert.runModal()
+        }
     }
 
     // MARK: - Onboarding
