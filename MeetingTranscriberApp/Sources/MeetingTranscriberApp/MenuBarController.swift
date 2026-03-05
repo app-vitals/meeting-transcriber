@@ -11,6 +11,7 @@ class MenuBarController: NSObject, NSMenuDelegate {
     private let onShowSetupWizard: () -> Void
     private let onViewTranscripts: () -> Void
     private let onOpenTranscriptsFolder: () -> Void
+    private let onOpenSettings: () -> Void
     private let menu = NSMenu()
 
     init(
@@ -18,13 +19,15 @@ class MenuBarController: NSObject, NSMenuDelegate {
         processManager: ProcessManager,
         onShowSetupWizard: @escaping () -> Void,
         onViewTranscripts: @escaping () -> Void,
-        onOpenTranscriptsFolder: @escaping () -> Void
+        onOpenTranscriptsFolder: @escaping () -> Void,
+        onOpenSettings: @escaping () -> Void
     ) {
         self.appState = appState
         self.processManager = processManager
         self.onShowSetupWizard = onShowSetupWizard
         self.onViewTranscripts = onViewTranscripts
         self.onOpenTranscriptsFolder = onOpenTranscriptsFolder
+        self.onOpenSettings = onOpenSettings
         super.init()
         setupStatusItem()
         appState.onChange = { [weak self] in
@@ -131,6 +134,14 @@ class MenuBarController: NSObject, NSMenuDelegate {
 
         menu.addItem(.separator())
 
+        let settingsItem = NSMenuItem(
+            title: "Settings…",
+            action: #selector(openSettings),
+            keyEquivalent: ","
+        )
+        settingsItem.target = self
+        menu.addItem(settingsItem)
+
         let wizardItem = NSMenuItem(
             title: "Setup Wizard…",
             action: #selector(runSetupWizard),
@@ -162,6 +173,10 @@ class MenuBarController: NSObject, NSMenuDelegate {
 
     @objc private func openTranscriptsFolder() {
         onOpenTranscriptsFolder()
+    }
+
+    @objc private func openSettings() {
+        onOpenSettings()
     }
 
     @objc private func runSetupWizard() {

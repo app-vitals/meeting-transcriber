@@ -28,6 +28,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var menuBarController: MenuBarController?
     var onboardingWindow: NSWindow?
     var transcriptViewerWindow: NSWindow?
+    var settingsWindow: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         processManager.appState = appState
@@ -42,7 +43,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             processManager: processManager,
             onShowSetupWizard: { [weak self] in self?.showOnboarding(startEngineOnComplete: false) },
             onViewTranscripts: { [weak self] in self?.showTranscriptViewer() },
-            onOpenTranscriptsFolder: { [weak self] in self?.openTranscriptsFolder() }
+            onOpenTranscriptsFolder: { [weak self] in self?.openTranscriptsFolder() },
+            onOpenSettings: { [weak self] in self?.showSettings() }
         )
 
         if UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
@@ -96,6 +98,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func openTranscriptsFolder() {
         NSWorkspace.shared.open(TranscriptStore.defaultDir)
+    }
+
+    // MARK: - Settings
+
+    func showSettings() {
+        if let existing = settingsWindow, existing.isVisible {
+            existing.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        let view = SettingsView()
+        let controller = NSHostingController(rootView: view)
+        let window = NSWindow(contentViewController: controller)
+        window.title = "Meeting Transcriber — Settings"
+        window.styleMask = [.titled, .closable, .miniaturizable]
+        window.isReleasedWhenClosed = false
+        window.center()
+        window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+
+        settingsWindow = window
     }
 
     // MARK: - Onboarding

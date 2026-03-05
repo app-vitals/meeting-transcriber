@@ -58,15 +58,28 @@ brew install blackhole-2ch
 
 ## Install
 
+### GUI app (recommended)
+
+Build and launch the menu bar app:
+
+```bash
+bun run build
+open MeetingTranscriberApp
+```
+
+Auto-start on login is managed natively via **SMAppService** — the app registers itself during onboarding and appears in **System Settings → General → Login Items**. Toggle it on/off any time from the menu bar → **Settings…**.
+
+### CLI / headless (legacy)
+
 ```bash
 ./install.sh
 ```
 
-This checks prerequisites, compiles Swift helpers and a standalone binary, installs a LaunchAgent (auto-starts on login), and symlinks the binary to `~/.local/bin/mt`.
+This checks prerequisites, compiles Swift helpers and a standalone binary, installs a LaunchAgent (auto-starts on login via plist), and symlinks the binary to `~/.local/bin/mt`.
 
-To update after pulling changes, re-run `./install.sh`.
+> **Note:** `install.sh` / `uninstall.sh` use the legacy LaunchAgent approach. For GUI app users, SMAppService handles auto-start — no manual install step is needed.
 
-To uninstall:
+To uninstall the LaunchAgent:
 
 ```bash
 ./uninstall.sh
