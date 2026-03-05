@@ -34,7 +34,6 @@ class TranscriptStore: ObservableObject {
 
     private let dir: URL
     private var fsSource: DispatchSourceFileSystemObject?
-    private var dirFD: Int32 = -1
 
     init(dir: URL = TranscriptStore.defaultDir) {
         self.dir = dir
@@ -43,8 +42,7 @@ class TranscriptStore: ObservableObject {
     }
 
     deinit {
-        fsSource?.cancel()
-        if dirFD >= 0 { Darwin.close(dirFD) }
+        fsSource?.cancel()  // cancel handler closes the fd
     }
 
     // MARK: - Load
@@ -124,7 +122,6 @@ class TranscriptStore: ObservableObject {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let fd = Darwin.open(dir.path, O_EVTONLY)
         guard fd >= 0 else { return }
-        dirFD = fd
         let src = DispatchSource.makeFileSystemObjectSource(
             fileDescriptor: fd,
             eventMask: [.write, .rename, .delete],
