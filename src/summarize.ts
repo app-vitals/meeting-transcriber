@@ -12,7 +12,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { readFileSync } from "fs";
 
-const MODEL = "claude-sonnet-4-6";
+const DEFAULT_MODEL = "claude-sonnet-4-6";
 
 const SYSTEM_PROMPT = `You are an expert meeting summarizer. Given a meeting transcript, extract the following in JSON format:
 
@@ -94,6 +94,11 @@ function formatSummarySection(summary: SummaryResult): string {
  * Silently skips if ANTHROPIC_API_KEY is unset or the API call fails.
  */
 export async function summarizeTranscript(transcriptPath: string): Promise<void> {
+  if (process.env.AI_ENABLED === "0") {
+    console.log("[summarize] AI summaries disabled — skipping");
+    return;
+  }
+
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     console.warn("[summarize] ANTHROPIC_API_KEY not set — skipping AI summary");
@@ -115,9 +120,10 @@ export async function summarizeTranscript(transcriptPath: string): Promise<void>
 
   let summary: SummaryResult | null = null;
   try {
+    const model = process.env.CLAUDE_MODEL || DEFAULT_MODEL;
     const client = new Anthropic({ apiKey });
     const response = await client.messages.create({
-      model: MODEL,
+      model,
       max_tokens: 1024,
       system: SYSTEM_PROMPT,
       messages: [{ role: "user", content: transcriptText }],
@@ -125,7 +131,7 @@ export async function summarizeTranscript(transcriptPath: string): Promise<void>
 
     const usage = response.usage;
     console.log(
-      `[summarize] ${MODEL} — input: ${usage.input_tokens} tokens, output: ${usage.output_tokens} tokens`,
+      `[summarize] ${model} — input: ${usage.input_tokens} tokens, output: ${usage.output_tokens} tokens`,
     );
 
     const block = response.content[0];
