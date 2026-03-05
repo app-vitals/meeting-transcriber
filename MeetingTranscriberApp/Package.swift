@@ -17,6 +17,7 @@ let package = Package(
                 ]),
                 .linkedFramework("AVFoundation"),
                 .linkedFramework("ScreenCaptureKit"),
+                .linkedFramework("Security"),
                 .linkedFramework("ServiceManagement"),
                 .linkedFramework("UserNotifications"),
             ]

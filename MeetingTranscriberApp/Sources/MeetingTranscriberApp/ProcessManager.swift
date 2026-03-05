@@ -69,6 +69,18 @@ class ProcessManager {
 
         var env = ProcessInfo.processInfo.environment
         env["NO_REC_STATUS"] = "1"
+
+        // Pass settings from AppConfig and Keychain so the TS engine uses
+        // the same configuration as the Swift app UI.
+        let config = AppConfig.shared
+        env["WHISPER_MODEL_PATH"] = config.resolvedModelPath
+        env["TRANSCRIPT_DIR"]     = config.resolvedTranscriptDir.path
+        env["AI_ENABLED"]         = config.aiEnabled ? "1" : "0"
+        env["CLAUDE_MODEL"]       = config.claudeModel
+        if let key = KeychainManager.shared.retrieve(key: "ANTHROPIC_API_KEY"), !key.isEmpty {
+            env["ANTHROPIC_API_KEY"] = key
+        }
+
         proc.environment = env
 
         let stdinPipe = Pipe()

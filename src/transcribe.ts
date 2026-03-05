@@ -29,7 +29,8 @@ function resolveModelPath(name: string): string {
 }
 
 const MODEL_NAME = "ggml-large-v3-turbo.bin";
-const MODEL_PATH = resolveModelPath(MODEL_NAME);
+// WHISPER_MODEL_PATH may be set by the Swift app to point at the user-selected model.
+const MODEL_PATH = process.env.WHISPER_MODEL_PATH || resolveModelPath(MODEL_NAME);
 const MODEL_URL = `https://huggingface.co/ggerganov/whisper.cpp/resolve/main/${MODEL_NAME}`;
 
 const VAD_MODEL_NAME = "ggml-silero-v5.1.2.bin";

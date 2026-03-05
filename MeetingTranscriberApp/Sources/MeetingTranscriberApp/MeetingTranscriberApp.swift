@@ -25,7 +25,7 @@ struct MeetingTranscriberApp {
 class AppDelegate: NSObject, NSApplicationDelegate {
     let appState = AppState()
     let processManager = ProcessManager()
-    let transcriptStore = TranscriptStore()
+    let transcriptStore = TranscriptStore(dir: AppConfig.shared.resolvedTranscriptDir)
     let notificationDelegate = NotificationDelegate()
     var menuBarController: MenuBarController?
     var onboardingWindow: NSWindow?
@@ -107,7 +107,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func openTranscriptsFolder() {
-        NSWorkspace.shared.open(TranscriptStore.defaultDir)
+        NSWorkspace.shared.open(AppConfig.shared.resolvedTranscriptDir)
     }
 
     // MARK: - Settings
@@ -119,7 +119,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        let view = SettingsView()
+        let view = SettingsView(
+            onInstallCLI:       { [weak self] in self?.runCLIScript("install-cli-command.sh") },
+            onRerunSetupWizard: { [weak self] in self?.showOnboarding(startEngineOnComplete: false) }
+        )
         let controller = NSHostingController(rootView: view)
         let window = NSWindow(contentViewController: controller)
         window.title = "Meeting Transcriber — Settings"
