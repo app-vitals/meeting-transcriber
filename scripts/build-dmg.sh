@@ -103,14 +103,19 @@ SWIFT_BIN="$REPO_DIR/MeetingTranscriberApp/.build/release/MeetingTranscriberApp"
 #           mic-check                ← CoreAudio helper (found via process.cwd()/src/)
 #           rec-status               ← Menu-bar REC indicator
 #           system-audio-capture     ← ScreenCaptureKit audio capture
+#       Resources/
+#         mt                         ← CLI wrapper (symlink target for ~/.local/bin/mt)
+#         install-cli-command.sh     ← Invoked by "Install mt CLI" menu item
+#         uninstall-cli-command.sh   ← Invoked by "Remove mt CLI" menu item
 # ---------------------------------------------------------------------------
 echo "--- Step 4: Assemble .app bundle ---"
 
 CONTENTS="$APP_PATH/Contents"
 MACOS_DIR="$CONTENTS/MacOS"
 SRC_DIR="$MACOS_DIR/src"
+RESOURCES_DIR="$CONTENTS/Resources"
 
-mkdir -p "$MACOS_DIR" "$SRC_DIR"
+mkdir -p "$MACOS_DIR" "$SRC_DIR" "$RESOURCES_DIR"
 
 # Info.plist (top-level, read by macOS — not the one embedded in the binary)
 cp "$REPO_DIR/MeetingTranscriberApp/Sources/MeetingTranscriberApp/Info.plist" \
@@ -135,6 +140,14 @@ cp "$REPO_DIR/meeting-transcriber" "$MACOS_DIR/meeting-transcriber"
 cp "$REPO_DIR/src/mic-check"              "$SRC_DIR/mic-check"
 cp "$REPO_DIR/src/rec-status"             "$SRC_DIR/rec-status"
 cp "$REPO_DIR/src/system-audio-capture"   "$SRC_DIR/system-audio-capture"
+
+# CLI scripts (Resources/ so the mt symlink target survives app reinstalls cleanly)
+cp "$SCRIPT_DIR/mt"                         "$RESOURCES_DIR/mt"
+cp "$SCRIPT_DIR/install-cli-command.sh"     "$RESOURCES_DIR/install-cli-command.sh"
+cp "$SCRIPT_DIR/uninstall-cli-command.sh"   "$RESOURCES_DIR/uninstall-cli-command.sh"
+chmod +x "$RESOURCES_DIR/mt" \
+         "$RESOURCES_DIR/install-cli-command.sh" \
+         "$RESOURCES_DIR/uninstall-cli-command.sh"
 
 echo "    Bundle created at $APP_PATH"
 

@@ -1,0 +1,26 @@
+#!/bin/bash
+# mt — CLI wrapper for Meeting Transcriber
+#
+# This script lives inside MeetingTranscriber.app/Contents/Resources/.
+# It resolves the binary (Contents/MacOS/meeting-transcriber) relative to
+# its own location and sets the working directory to Contents/MacOS/ so
+# that the TypeScript engine can locate its Swift helper binaries at
+# process.cwd()/src/ (mic-check, rec-status, system-audio-capture).
+#
+# Install this command via "Install mt CLI" in the app's menu bar menu,
+# or by running: scripts/install-cli-command.sh
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+MACOS_DIR="$SCRIPT_DIR/../MacOS"
+BINARY="$MACOS_DIR/meeting-transcriber"
+
+if [ ! -x "$BINARY" ]; then
+  echo "Error: meeting-transcriber binary not found at $BINARY" >&2
+  echo "Is MeetingTranscriber.app installed in ~/Applications or /Applications?" >&2
+  exit 1
+fi
+
+cd "$MACOS_DIR"
+exec "$BINARY" "$@"
