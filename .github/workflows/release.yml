@@ -132,34 +132,23 @@ jobs:
         run: |
           DMG_PATH="build/MeetingTranscriber-${VERSION}.dmg"
 
+          cat > /tmp/release-notes.md << 'EOF'
+          Auto-records and transcribes your meetings on macOS. Detects when a meeting app activates your microphone, records both your voice and other participants, then produces a labeled transcript with speaker attribution.
+
+          **Install:**
+          1. Download the DMG below
+          2. Open the DMG and drag Meeting Transcriber to your Applications folder
+          3. Launch it — the app lives in your menu bar
+          4. Follow the onboarding flow to grant Microphone and Screen Recording permissions
+
+          **Prerequisites:** `brew install sox whisper-cpp`
+
+          Requires macOS 13 (Ventura) or later.
+          EOF
+
           gh release create "$TAG" \
             --title "Meeting Transcriber $TAG" \
-            --notes "$(cat <<NOTES
-## Meeting Transcriber $TAG
-
-Auto-records and transcribes your meetings on macOS. Detects when a meeting app activates your microphone, records both your voice and other participants, then produces a labeled transcript with speaker attribution.
-
-### Install
-
-1. Download **MeetingTranscriber-$TAG.dmg** below
-2. Open the DMG and drag **Meeting Transcriber** to your Applications folder
-3. Launch it — the app lives in your menu bar
-4. Follow the onboarding flow to grant Microphone and Screen Recording permissions
-
-### Prerequisites
-
-Install once via Homebrew:
-
-    brew install sox whisper-cpp
-
-### What's new
-
-See [CHANGELOG](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
-
----
-*Requires macOS 13 (Ventura) or later.*
-NOTES
-)" \
+            --notes-file /tmp/release-notes.md \
             "$DMG_PATH"
 
       # -----------------------------------------------------------------------
