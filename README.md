@@ -98,6 +98,28 @@ To remove the CLI command, use **Menu bar → ● REC → Remove mt CLI**, or ru
 rm ~/.local/bin/mt
 ```
 
+### Test DMG locally (unsigned — no Apple Developer account needed)
+
+Build an unsigned DMG to test the full app experience before signing:
+
+```bash
+chmod +x scripts/build-dmg.sh
+./scripts/build-dmg.sh
+```
+
+This builds the Swift app, compiles the Bun binary, assembles the .app bundle, creates a DMG, and drops it in `build/MeetingTranscriber-1.0.0.dmg`.
+
+Since the DMG is unsigned, macOS will block it on first launch. To bypass Gatekeeper:
+
+```bash
+# Option A: Right-click the app → "Open" (not double-click) → click "Open" in the dialog
+
+# Option B: Remove the quarantine flag
+xattr -cr /Applications/MeetingTranscriber.app
+```
+
+This lets you test everything — onboarding, settings, notifications, CLI install, AI summaries — without an Apple Developer account. Once you're satisfied, sign up ($99/yr) and configure code signing for production releases.
+
 ### Build from source (GUI app)
 
 Build and launch the menu bar app:
