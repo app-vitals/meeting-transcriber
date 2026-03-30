@@ -69,11 +69,15 @@ jobs:
       #    If secrets are absent the build proceeds unsigned (DMG still produced).
       # -----------------------------------------------------------------------
       - name: Import signing certificate
-        if: ${{ secrets.APPLE_DEVELOPER_CERT != '' }}
         env:
           CERT_B64: ${{ secrets.APPLE_DEVELOPER_CERT }}
           CERT_PASSWORD: ${{ secrets.APPLE_DEVELOPER_CERT_PASSWORD }}
         run: |
+          if [ -z "$CERT_B64" ]; then
+            echo "APPLE_DEVELOPER_CERT not set — skipping certificate import (unsigned build)."
+            exit 0
+          fi
+
           # Create a temporary keychain so the cert doesn't persist after the job
           KEYCHAIN_PATH="$RUNNER_TEMP/build.keychain"
           KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
