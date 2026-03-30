@@ -12,7 +12,13 @@
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Resolve symlinks so this works when installed via a symlink in ~/.local/bin
+SCRIPT="$0"
+while [ -L "$SCRIPT" ]; do
+  SCRIPT="$(readlink "$SCRIPT")"
+  [[ "$SCRIPT" == /* ]] || SCRIPT="$(dirname "$0")/$SCRIPT"
+done
+SCRIPT_DIR="$(cd "$(dirname "$SCRIPT")" && pwd)"
 MACOS_DIR="$SCRIPT_DIR/../MacOS"
 BINARY="$MACOS_DIR/meeting-transcriber"
 
