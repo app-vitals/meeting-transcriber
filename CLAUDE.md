@@ -25,16 +25,16 @@ After install, `mt` is available in PATH via symlink. Subcommands:
 macOS-only meeting transcription pipeline: detect mic activation → record dual audio → transcribe → merge.
 
 **Flow:**
-1. `index.ts` orchestrates everything. On startup, checks for BlackHole 2ch and downloads the whisper model if needed.
+1. `index.ts` orchestrates everything. On startup, downloads the whisper model if needed.
 2. `detect.ts` polls `mic-check` (compiled Swift binary) every 2s via CoreAudio to detect when a meeting app activates a microphone.
-3. On mic activation, `record.ts` starts two SoX `rec` processes — one for the default mic (you), one for BlackHole 2ch (other participants). Both output 16kHz mono 16-bit WAV.
+3. On mic activation, `record.ts` starts SoX `rec` for the default mic (you) and the Swift app captures speaker audio via ScreenCaptureKit. Both output 16kHz mono 16-bit WAV.
 4. `rec-status.swift` shows a red "REC" menu bar indicator. Clicking it stops recording.
 5. On stop, `transcribe.ts` runs `whisper-cli` (whisper.cpp) on both WAV files in parallel, parsing JSON output into timestamped segments.
 6. `merge.ts` flattens both transcripts to plain text, walks the mic text with a 5-word sliding window to find runs matching the speaker text (Them), labels the rest as You, writes markdown to `transcripts/`.
 
 **Key design decisions:**
-- SoX for recording (not ffmpeg) — ffmpeg's avfoundation layer produces clicks/pops with virtual audio devices like BlackHole
-- SoX can't address input-only devices by name on macOS, so mic uses system default input
+- SoX for mic recording (not ffmpeg) — ffmpeg's avfoundation layer produces clicks/pops; mic uses system default input
+- Speaker audio captured via ScreenCaptureKit (Swift app, requires Screen Recording permission)
 - Merge uses the mic recording as the single timeline source (accurate timestamps) and the speaker recording only to identify who's talking (text matching, not timestamps)
 - Short unmatched gaps between Them runs are absorbed if the speaker text flows continuously through them (handles whisper transcription differences like "will" vs "we'll")
 - Swift helpers are minimal single-file CLIs compiled with `swiftc`, no Xcode project needed
@@ -56,4 +56,4 @@ Two scripts for iterating on `src/merge.ts` without re-running whisper:
 
 ## Prerequisites
 
-`brew install blackhole-2ch sox whisper-cpp terminal-notifier` plus a Multi-Output Device in Audio MIDI Setup (speakers + BlackHole 2ch).
+`brew install sox whisper-cpp terminal-notifier`

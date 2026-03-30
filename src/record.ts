@@ -1,12 +1,8 @@
 /**
  * Record audio from microphone and speaker.
  *
- * macOS 13+: speaker audio is captured via ScreenCaptureKit (system-audio-capture),
- *            requiring only a Screen Recording permission prompt — no BlackHole needed.
- *
- * macOS 12:  falls back to SoX rec + BlackHole 2ch (original behaviour).
- *
- * Mic is always captured via SoX rec against the default system input.
+ * Mic is captured via SoX rec against the default system input.
+ * Speaker audio is captured by the Swift app via ScreenCaptureKit (Screen Recording permission required).
  *
  * Outputs WAV files to the recordings/ directory.
  */

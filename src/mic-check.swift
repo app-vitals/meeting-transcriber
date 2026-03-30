@@ -52,8 +52,6 @@ for device in devices {
 
     if isRunning == 1 {
         let name = getDeviceName(device)
-        // Skip virtual audio devices used for loopback capture
-        if name.hasPrefix("BlackHole") { continue }
         print(name)
         exit(0)
     }
