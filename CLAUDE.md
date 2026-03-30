@@ -6,8 +6,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - `bun run build` — compile Swift helpers and standalone binary
 - `bun run start` — run the compiled meeting-transcriber binary
-- `./install.sh` — build, install as LaunchAgent (auto-start on login), symlink `mt` to `~/.local/bin`
-- `./uninstall.sh` — stop and remove LaunchAgent and `mt` symlink
 - `bun test` — run tests
 
 Use Bun, not Node.js. Use `Bun.file`, `Bun.spawn`, `Bun.write` over Node equivalents.
