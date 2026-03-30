@@ -12,11 +12,6 @@ for cmd in bun sox whisper-cli terminal-notifier; do
   command -v "$cmd" >/dev/null 2>&1 || missing+=("$cmd")
 done
 
-# BlackHole check: brew list won't work if installed via pkg, so check for the audio device
-if ! system_profiler SPAudioDataType 2>/dev/null | grep -q "BlackHole"; then
-  missing+=("blackhole-2ch")
-fi
-
 if [ ${#missing[@]} -gt 0 ]; then
   echo "Missing prerequisites: ${missing[*]}"
   echo "Install with: brew install ${missing[*]}"

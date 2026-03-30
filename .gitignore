@@ -9,7 +9,11 @@ dist
 # compiled binaries
 src/mic-check
 src/rec-status
+src/system-audio-capture
 meeting-transcriber
+
+# local Claude config
+CLAUDE.local.md
 
 # recordings, transcripts, and models (local data)
 recordings/
