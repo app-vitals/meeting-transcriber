@@ -44,6 +44,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Auto-open viewer and highlight new transcript when transcription completes.
         processManager.onTranscriptSaved = { [weak self] stem in
+            guard AppConfig.shared.autoOpenTranscripts else { return }
             self?.showTranscriptViewer(highlightID: stem)
         }
 

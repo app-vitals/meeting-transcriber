@@ -67,6 +67,7 @@ struct SettingsView: View {
             }
 
             Toggle("Show notifications", isOn: $config.notificationsEnabled)
+            Toggle("Auto-open transcripts when ready", isOn: $config.autoOpenTranscripts)
         }
         .formStyle(.grouped)
     }

@@ -12,6 +12,9 @@ class AppConfig: ObservableObject {
     @Published var notificationsEnabled: Bool = true {
         didSet { UserDefaults.standard.set(notificationsEnabled, forKey: "notificationsEnabled"); persist() }
     }
+    @Published var autoOpenTranscripts: Bool = true {
+        didSet { UserDefaults.standard.set(autoOpenTranscripts, forKey: "autoOpenTranscripts"); persist() }
+    }
     /// Whisper model identifier, e.g. "large-v3-turbo", "base", "small".
     @Published var whisperModel: String = "large-v3-turbo" {
         didSet { UserDefaults.standard.set(whisperModel, forKey: "whisperModel"); persist() }
@@ -66,6 +69,7 @@ class AppConfig: ObservableObject {
     private init() {
         let d = UserDefaults.standard
         if let v = d.object(forKey: "notificationsEnabled") as? Bool { notificationsEnabled = v }
+        if let v = d.object(forKey: "autoOpenTranscripts") as? Bool  { autoOpenTranscripts = v }
         if let v = d.string(forKey: "whisperModel"),   !v.isEmpty    { whisperModel = v }
         if let v = d.string(forKey: "audioDeviceOverride")            { audioDeviceOverride = v }
         if let v = d.object(forKey: "aiEnabled") as? Bool             { aiEnabled = v }
