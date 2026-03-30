@@ -59,14 +59,17 @@ jobs:
           brew install create-dmg
 
       # -----------------------------------------------------------------------
-      # 5. Import Developer ID certificate into an ephemeral keychain
+      # 5. Import Developer ID certificate into an ephemeral keychain (optional)
       #
-      #    Secrets to configure in GitHub → Settings → Secrets → Actions:
+      #    Configure in GitHub → Settings → Secrets → Actions to enable signing:
       #      APPLE_DEVELOPER_CERT         — base64-encoded .p12 file
       #                                     openssl base64 -in cert.p12 | pbcopy
       #      APPLE_DEVELOPER_CERT_PASSWORD — p12 export password
+      #
+      #    If secrets are absent the build proceeds unsigned (DMG still produced).
       # -----------------------------------------------------------------------
       - name: Import signing certificate
+        if: ${{ secrets.APPLE_DEVELOPER_CERT != '' }}
         env:
           CERT_B64: ${{ secrets.APPLE_DEVELOPER_CERT }}
           CERT_PASSWORD: ${{ secrets.APPLE_DEVELOPER_CERT_PASSWORD }}
@@ -97,7 +100,7 @@ jobs:
           rm "$CERT_PATH"
 
       # -----------------------------------------------------------------------
-      # 6. Resolve signing identity from the imported cert
+      # 6. Resolve signing identity from the imported cert (skipped if no cert)
       # -----------------------------------------------------------------------
       - name: Resolve signing identity
         id: signing
@@ -106,17 +109,17 @@ jobs:
             | grep "Developer ID Application" \
             | head -1 \
             | sed 's/.*"\(.*\)"/\1/')
-          if [ -z "$IDENTITY" ]; then
-            echo "ERROR: No 'Developer ID Application' certificate found in keychain."
-            exit 1
-          fi
           echo "identity=$IDENTITY" >> "$GITHUB_OUTPUT"
-          echo "Found signing identity: $IDENTITY"
+          if [ -n "$IDENTITY" ]; then
+            echo "Found signing identity: $IDENTITY"
+          else
+            echo "No signing identity found — building unsigned DMG."
+          fi
 
       # -----------------------------------------------------------------------
       # 7. Build, sign, notarize, and package the DMG
       #
-      #    Secrets to configure:
+      #    Configure secrets to enable signing + notarization:
       #      NOTARY_TEAM_ID       — 10-character Apple Developer Team ID
       #      NOTARY_APPLE_ID      — Apple ID email (App Store Connect account)
       #      NOTARY_APP_PASSWORD  — App-specific password (appleid.apple.com)
