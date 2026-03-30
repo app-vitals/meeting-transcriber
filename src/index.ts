@@ -115,14 +115,14 @@ async function stopSession(session: Session): Promise<void> {
   }
 
   // Discard recordings shorter than 1 minute — likely accidental triggers
-  // if (duration < 60 * 1000) {
-  //   console.log(`[record] Recording deleted (too short: ${formatDuration(duration)})`);
-  //   for (const filePath of [session.mic.filePath, session.speaker.filePath]) {
-  //     try { unlinkSync(filePath); } catch {}
-  //   }
-  //   notify("Meeting Transcriber", `Recording deleted (too short: ${formatDuration(duration)})`);
-  //   return;
-  // }
+  if (duration < 60 * 1000) {
+    console.log(`[record] Recording deleted (too short: ${formatDuration(duration)})`);
+    for (const filePath of [session.mic.filePath, session.speaker.filePath]) {
+      try { unlinkSync(filePath); } catch {}
+    }
+    notify("Meeting Transcriber", `Recording deleted (too short: ${formatDuration(duration)})`);
+    return;
+  }
 
   notify("Meeting Transcriber", `Recording saved (${formatDuration(duration)})`);
 
