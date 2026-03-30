@@ -59,3 +59,7 @@ Two scripts for iterating on `src/merge.ts` without re-running whisper:
 ## Prerequisites
 
 `brew install blackhole-2ch sox whisper-cpp terminal-notifier` plus a Multi-Output Device in Audio MIDI Setup (speakers + BlackHole 2ch).
+
+## Troubleshooting
+
+- **ScreenCaptureKit error -3801** ("The user declined TCCs for application, window, display capture") even after granting Screen Recording permission: run `tccutil reset ScreenCapture` to clear the cached denial. macOS caches the denial against the binary identity and won't re-prompt without the reset.
