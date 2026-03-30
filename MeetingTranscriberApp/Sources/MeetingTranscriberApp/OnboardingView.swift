@@ -133,7 +133,6 @@ private struct PermissionsStep: View {
             )
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        // Poll mic status while waiting (cheap); screen refreshed manually via buttons.
         .task {
             while !perms.allGranted {
                 try? await Task.sleep(nanoseconds: 3_000_000_000)

@@ -9,7 +9,14 @@ dist
 # compiled binaries
 src/mic-check
 src/rec-status
+src/system-audio-capture
 meeting-transcriber
+
+# Swift build artifacts
+MeetingTranscriberApp/.build/
+
+# built app/dmg
+build/
 
 # recordings, transcripts, and models (local data)
 recordings/

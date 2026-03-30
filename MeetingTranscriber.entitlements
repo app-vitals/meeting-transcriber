@@ -6,7 +6,7 @@
         Hardened Runtime entitlements for Meeting Transcriber.
 
         App Sandbox is intentionally disabled — the engine subprocess (Bun) and
-        helper binaries (mic-check, system-audio-capture) require unrestricted
+        helper binaries (mic-check, rec-status) require unrestricted
         filesystem and IPC access that the sandbox would block.
 
         Microphone and Screen Recording access are granted at runtime by TCC
@@ -23,7 +23,7 @@
 
     <!--
         Disable library validation so the bundled helper binaries
-        (mic-check, rec-status, system-audio-capture, meeting-transcriber)
+        (mic-check, rec-status, meeting-transcriber)
         can be loaded without requiring them to carry the same team ID.
         Each binary is individually signed in the build script.
     -->

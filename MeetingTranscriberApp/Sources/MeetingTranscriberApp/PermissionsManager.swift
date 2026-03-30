@@ -20,7 +20,6 @@ class PermissionsManager: ObservableObject {
     /// Populate initial status without triggering OS prompts.
     func checkInitialStatuses() {
         micStatus = currentMicStatus()
-        screenStatus = heuristicScreenStatus()
         Task { notificationStatus = await NotificationManager.shared.checkStatus() }
     }
 
@@ -91,14 +90,5 @@ class PermissionsManager: ObservableObject {
         case .notDetermined: return .unknown
         @unknown default: return .unknown
         }
-    }
-
-    /// Heuristic: CGWindowList returns other-app windows only when screen recording is granted.
-    private func heuristicScreenStatus() -> PermissionStatus {
-        let opts: CGWindowListOption = [.optionOnScreenOnly, .excludeDesktopElements]
-        let list = CGWindowListCopyWindowInfo(opts, kCGNullWindowID) as? [[String: Any]] ?? []
-        let myPID = Int32(ProcessInfo.processInfo.processIdentifier)
-        let hasOtherWindows = list.contains { ($0[kCGWindowOwnerPID as String] as? Int32 ?? 0) != myPID }
-        return hasOtherWindows ? .granted : .unknown
     }
 }

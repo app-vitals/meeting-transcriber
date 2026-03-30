@@ -1,6 +1,7 @@
 import Cocoa
 import SwiftUI
 import UserNotifications
+import ScreenCaptureKit
 
 /// App entry point. Uses @main with a static main() so Swift Package Manager
 /// does not require a main.swift file.
@@ -58,9 +59,31 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
 
         if UserDefaults.standard.bool(forKey: "hasCompletedOnboarding") {
-            processManager.start()
+            // Even if onboarding was completed previously, verify Screen Recording
+            // is still granted — it may not be on a fresh install or after a reset.
+            Task {
+                let granted = await self.screenRecordingGranted()
+                await MainActor.run {
+                    if granted {
+                        self.processManager.start()
+                    } else {
+                        self.showOnboarding(startEngineOnComplete: true)
+                    }
+                }
+            }
         } else {
             showOnboarding(startEngineOnComplete: true)
+        }
+    }
+
+    /// Returns true if Screen Recording permission is currently granted.
+    private func screenRecordingGranted() async -> Bool {
+        do {
+            let content = try await SCShareableContent.excludingDesktopWindows(
+                false, onScreenWindowsOnly: false)
+            return !content.displays.isEmpty
+        } catch {
+            return false
         }
     }
 

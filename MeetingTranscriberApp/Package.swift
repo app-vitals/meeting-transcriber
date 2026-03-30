@@ -12,10 +12,14 @@ let package = Package(
                 // Embed Info.plist so macOS reads LSUIElement and bundle metadata
                 // from the binary even without a .app bundle wrapper.
                 .unsafeFlags([
-                    "-sectcreate", "__TEXT", "__info_plist",
-                    "Sources/MeetingTranscriberApp/Info.plist",
+                    "-Xlinker", "-sectcreate",
+                    "-Xlinker", "__TEXT",
+                    "-Xlinker", "__info_plist",
+                    "-Xlinker", "Sources/MeetingTranscriberApp/Info.plist",
+
                 ]),
                 .linkedFramework("AVFoundation"),
+                .linkedFramework("CoreMedia"),
                 .linkedFramework("ScreenCaptureKit"),
                 .linkedFramework("Security"),
                 .linkedFramework("ServiceManagement"),

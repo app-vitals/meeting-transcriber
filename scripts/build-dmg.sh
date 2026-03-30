@@ -73,9 +73,6 @@ bun install --frozen-lockfile
 # Compile Swift helpers
 swiftc src/mic-check.swift -framework CoreAudio -o src/mic-check
 swiftc src/rec-status.swift -framework Cocoa -o src/rec-status
-swiftc src/system-audio-capture.swift \
-    -framework ScreenCaptureKit -framework CoreMedia \
-    -o src/system-audio-capture
 
 # Compile standalone Bun binary (macOS grants TCC permissions to this binary directly)
 bun build --compile src/index.ts --outfile meeting-transcriber
@@ -102,7 +99,6 @@ SWIFT_BIN="$REPO_DIR/MeetingTranscriberApp/.build/release/MeetingTranscriberApp"
 #         src/
 #           mic-check                ← CoreAudio helper (found via process.cwd()/src/)
 #           rec-status               ← Menu-bar REC indicator
-#           system-audio-capture     ← ScreenCaptureKit audio capture
 #       Resources/
 #         mt                         ← CLI wrapper (symlink target for ~/.local/bin/mt)
 #         install-cli-command.sh     ← Invoked by "Install mt CLI" menu item
@@ -139,7 +135,6 @@ cp "$REPO_DIR/meeting-transcriber" "$MACOS_DIR/meeting-transcriber"
 # when the engine's working directory is set to Contents/MacOS/ — see ProcessManager)
 cp "$REPO_DIR/src/mic-check"              "$SRC_DIR/mic-check"
 cp "$REPO_DIR/src/rec-status"             "$SRC_DIR/rec-status"
-cp "$REPO_DIR/src/system-audio-capture"   "$SRC_DIR/system-audio-capture"
 
 # CLI scripts (Resources/ so the mt symlink target survives app reinstalls cleanly)
 cp "$SCRIPT_DIR/mt"                         "$RESOURCES_DIR/mt"
@@ -159,7 +154,7 @@ if [ -n "$SIGNING_IDENTITY" ]; then
   ENTITLEMENTS="$REPO_DIR/MeetingTranscriber.entitlements"
 
   # Sign leaf binaries first (inside-out order required by codesign)
-  for helper in mic-check rec-status system-audio-capture; do
+  for helper in mic-check rec-status; do
     echo "    Signing src/$helper"
     codesign --force --options runtime \
       --sign "$SIGNING_IDENTITY" \

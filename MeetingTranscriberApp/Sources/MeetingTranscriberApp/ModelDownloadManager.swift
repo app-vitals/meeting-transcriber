@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 
 struct ModelSpec {
     let name: String

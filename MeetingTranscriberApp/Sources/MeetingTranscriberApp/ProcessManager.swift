@@ -12,6 +12,8 @@ class ProcessManager {
     private var restartWorkItem: DispatchWorkItem?
     private var isShuttingDown = false
 
+    private let speakerCapture = SpeakerCaptureManager()
+
     weak var appState: AppState?
 
     /// Called on the main thread with the transcript filename stem
@@ -37,6 +39,7 @@ class ProcessManager {
     func shutdown() {
         isShuttingDown = true
         restartWorkItem?.cancel()
+        Task { await speakerCapture.stop() }
         if let proc = process, proc.isRunning {
             proc.terminate()
         }
@@ -68,6 +71,14 @@ class ProcessManager {
         proc.currentDirectoryURL = appExecDir
 
         var env = ProcessInfo.processInfo.environment
+
+        // GUI apps on macOS get a minimal PATH that excludes Homebrew.
+        // Augment with the standard Homebrew locations so tools like
+        // `rec` (sox) and `terminal-notifier` can be found.
+        let brewPaths = ["/opt/homebrew/bin", "/opt/homebrew/sbin", "/usr/local/bin", "/usr/local/sbin"]
+        let currentPath = env["PATH"] ?? "/usr/bin:/bin:/usr/sbin:/sbin"
+        env["PATH"] = (brewPaths + [currentPath]).joined(separator: ":")
+
         env["NO_REC_STATUS"] = "1"
 
         // Pass settings from AppConfig and Keychain so the TS engine uses
@@ -128,9 +139,19 @@ class ProcessManager {
     private func parseOutput(_ text: String) {
         for line in text.components(separatedBy: .newlines) {
             let l = line.trimmingCharacters(in: .whitespaces)
-            if l.contains("[detect] Microphone activated") || l.contains("[record] Mic recording:") {
+            if l.contains("[record] Mic recording:") {
+                // Extract session timestamp from mic path and start speaker capture.
+                // e.g. "[record] Mic recording: /Users/dan/recordings/mic_2026-01-01T12-00-00.wav"
+                if let range = l.range(of: "[record] Mic recording: ") {
+                    let micPath = String(l[range.upperBound...]).trimmingCharacters(in: .whitespaces)
+                    let speakerPath = micPath.replacingOccurrences(of: "/mic_", with: "/speaker_")
+                    Task { await speakerCapture.start(outputPath: speakerPath) }
+                }
+                DispatchQueue.main.async { self.appState?.recordingState = .recording }
+            } else if l.contains("[detect] Microphone activated") || l.contains("[detect] Manual recording") {
                 DispatchQueue.main.async { self.appState?.recordingState = .recording }
             } else if l.contains("[record] Stopping recordings") {
+                Task { await speakerCapture.stop() }
                 DispatchQueue.main.async { self.appState?.recordingState = .processing }
             } else if l.contains("[transcribe] Saved:") || l.contains("Watching for microphone")
                         || l.contains("Recording deleted") {

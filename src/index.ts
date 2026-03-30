@@ -32,7 +32,7 @@ if (subcommand === "list") {
 }
 
 import { createMicDetector } from "./detect.ts";
-import { startMicRecording, startSpeakerRecording, makeSessionTimestamp, cleanOldRecordings, isMacOS13OrLater, type Recording } from "./record.ts";
+import { startMicRecording, startSpeakerRecording, makeSessionTimestamp, cleanOldRecordings, type Recording } from "./record.ts";
 import { transcribe } from "./transcribe.ts";
 import { mergeTranscripts } from "./merge.ts";
 import { summarizeTranscript } from "./summarize.ts";
@@ -116,7 +116,7 @@ async function stopSession(session: Session): Promise<void> {
 
   // Discard recordings shorter than 1 minute — likely accidental triggers
   if (duration < 60 * 1000) {
-    console.log(`[record] Recording too short (${formatDuration(duration)}), deleting.`);
+    console.log(`[record] Recording deleted (too short: ${formatDuration(duration)})`);
     for (const filePath of [session.mic.filePath, session.speaker.filePath]) {
       try { unlinkSync(filePath); } catch {}
     }
@@ -157,35 +157,7 @@ async function stopSession(session: Session): Promise<void> {
   }
 }
 
-/** Check that BlackHole 2ch is installed and visible as an audio device. */
-async function checkBlackHole(): Promise<boolean> {
-  const proc = Bun.spawn(["system_profiler", "SPAudioDataType"], {
-    stdout: "pipe",
-    stderr: "ignore",
-  });
-  const output = await new Response(proc.stdout).text();
-  return output.includes("BlackHole 2ch");
-}
-
 // --- Main ---
-
-if (isMacOS13OrLater()) {
-  // ScreenCaptureKit handles system audio directly — no BlackHole required.
-  console.log("macOS 13+ detected. Using ScreenCaptureKit for speaker audio.");
-} else {
-  // macOS 12 fallback: require BlackHole 2ch + Multi-Output Device setup.
-  const blackHoleAvailable = await checkBlackHole();
-  if (!blackHoleAvailable) {
-    console.error("BlackHole 2ch not found. Speaker recording requires it on macOS 12.\n");
-    console.error("Setup instructions:");
-    console.error("  1. brew install blackhole-2ch");
-    console.error("  2. Open Audio MIDI Setup → '+' → Create Multi-Output Device");
-    console.error("     → check both your speakers and 'BlackHole 2ch'");
-    console.error("  3. Set Multi-Output Device as system output in System Settings > Sound");
-    process.exit(1);
-  }
-  console.log("BlackHole 2ch detected. Speaker recording enabled (macOS 12 path).");
-}
 
 // Model download is handled by the Swift onboarding wizard on first launch.
 // The engine is only started after onboarding completes and models are present.
@@ -193,27 +165,22 @@ if (isMacOS13OrLater()) {
 if (process.env.NO_REC_STATUS === "1") {
   // Running under the Swift menu bar app — read start/stop commands from stdin
   // instead of spawning the rec-status helper subprocess.
-  (async () => {
-    const reader = process.stdin.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop()!;
-        for (const line of lines) {
-          const cmd = line.trim();
-          if (cmd === "start") startManualRecording();
-          else if (cmd === "stop") finishRecording();
-        }
-      }
-    } catch {
-      // stdin closed — parent app exited
+  // Use Node-style readline which works in both Bun source and compiled binaries.
+  let stdinBuffer = "";
+  process.stdin.setEncoding("utf8");
+  process.stdin.on("data", (chunk: string) => {
+    stdinBuffer += chunk;
+    const lines = stdinBuffer.split("\n");
+    stdinBuffer = lines.pop()!;
+    for (const line of lines) {
+      const cmd = line.trim();
+      if (cmd === "start") startManualRecording();
+      else if (cmd === "stop") finishRecording();
     }
-  })();
+  });
+  process.stdin.on("end", () => {
+    // stdin closed — parent app exited
+  });
 } else {
   spawnRecStatus(() => finishRecording(), () => startManualRecording());
 }

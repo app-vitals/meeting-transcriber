@@ -12,9 +12,8 @@
  */
 
 import { spawn } from "child_process";
-import { join, dirname } from "path";
-import { mkdirSync, readdirSync, unlinkSync, statSync, existsSync } from "fs";
-import { fileURLToPath } from "url";
+import { join } from "path";
+import { mkdirSync, readdirSync, unlinkSync } from "fs";
 import { homedir } from "os";
 
 const RECORDINGS_DIR = join(homedir(), "recordings");
@@ -34,23 +33,7 @@ export function makeSessionTimestamp(): string {
 }
 
 // ---------------------------------------------------------------------------
-// macOS version detection
-// ---------------------------------------------------------------------------
-
-/** Returns true when running on macOS 13 (Ventura) or later. */
-export function isMacOS13OrLater(): boolean {
-  try {
-    const result = Bun.spawnSync(["sw_vers", "-productVersion"], { stderr: "ignore" });
-    const version = new TextDecoder().decode(result.stdout).trim();
-    const [major] = version.split(".").map(Number);
-    return major >= 13;
-  } catch {
-    return false;
-  }
-}
-
-// ---------------------------------------------------------------------------
-// SoX-based recording (mic default, or BlackHole for speaker on macOS 12)
+// SoX-based mic recording
 // ---------------------------------------------------------------------------
 
 /**
@@ -107,61 +90,6 @@ function startSoxRecording(prefix: string, audiodev: string | undefined, session
 }
 
 // ---------------------------------------------------------------------------
-// ScreenCaptureKit-based speaker recording (macOS 13+)
-// ---------------------------------------------------------------------------
-
-/** Path to the compiled system-audio-capture binary (sits next to this source file). */
-function systemAudioCaptureBin(): string {
-  // In production (bun compiled binary) process.execPath points to the binary itself,
-  // whose parent dir is the repo root where `src/system-audio-capture` lives.
-  // In dev (bun run src/index.ts) __dirname works too.
-  const candidates = [
-    join(process.cwd(), "src", "system-audio-capture"),
-    join(dirname(fileURLToPath(import.meta.url)), "system-audio-capture"),
-  ];
-  return candidates.find(existsSync) ?? candidates[0];
-}
-
-/**
- * Start recording system audio via ScreenCaptureKit.
- * Requires Screen Recording permission (macOS 13+).
- */
-function startSCKitSpeakerRecording(sessionTimestamp: string): Recording {
-  mkdirSync(RECORDINGS_DIR, { recursive: true });
-
-  const filePath = join(RECORDINGS_DIR, `speaker_${sessionTimestamp}.wav`);
-  const bin = systemAudioCaptureBin();
-
-  const proc = spawn(bin, [filePath], {
-    stdio: ["ignore", "ignore", "pipe"],
-  });
-
-  let stderrOutput = "";
-  proc.stderr?.on("data", (chunk: Buffer) => {
-    stderrOutput += chunk.toString();
-  });
-
-  const exited = new Promise<number | null>((resolve) => {
-    proc.on("close", (code) => resolve(code));
-  });
-
-  return {
-    filePath,
-    startedAt: new Date(),
-    stop: async () => {
-      proc.kill("SIGTERM");
-      const code = await exited;
-      if (code === 0 || code === null) {
-        return filePath;
-      }
-      throw new Error(
-        `system-audio-capture exited with code ${code}\n${stderrOutput.slice(-500)}`,
-      );
-    },
-  };
-}
-
-// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -173,16 +101,14 @@ export function startMicRecording(sessionTimestamp: string): Recording {
 }
 
 /**
- * Start recording system/speaker audio.
- *
- * On macOS 13+: uses ScreenCaptureKit (system-audio-capture binary) — no BlackHole needed.
- * On macOS 12:  uses SoX rec via BlackHole 2ch.
+ * Returns the expected speaker WAV path for this session.
+ * Speaker audio is captured in-process by the Swift app via ScreenCaptureKit;
+ * this stub just tracks the path. stop() returns immediately while the Swift app
+ * finalizes the WAV asynchronously — whisper's startup latency covers the gap in practice.
  */
 export function startSpeakerRecording(sessionTimestamp: string): Recording {
-  if (isMacOS13OrLater()) {
-    return startSCKitSpeakerRecording(sessionTimestamp);
-  }
-  return startSoxRecording("speaker", "BlackHole 2ch", sessionTimestamp);
+  const filePath = join(RECORDINGS_DIR, `speaker_${sessionTimestamp}.wav`);
+  return { filePath, startedAt: new Date(), stop: async () => filePath };
 }
 
 // ---------------------------------------------------------------------------
